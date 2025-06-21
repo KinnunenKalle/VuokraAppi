@@ -55,8 +55,10 @@ public class ApartmentController {
 
     @PostMapping
     public ResponseEntity<String> addApartment(@RequestBody Apartment apartment) {
-        apartmentRepository.save(apartment);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Asunto tallennettu onnistuneesti");
+        Apartment savedApartment = apartmentRepository.save(apartment);
+
+	Map<String, Long> response = Map.of("id", savedApartment.getId());
+	return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @DeleteMapping("/{id}")
