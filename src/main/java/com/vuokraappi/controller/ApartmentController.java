@@ -54,12 +54,13 @@ public class ApartmentController {
     }
 
     @PostMapping
-    public ResponseEntity<String> addApartment(@RequestBody Apartment apartment) {
+    public ResponseEntity<Map<String, UUID>> addApartment(@RequestBody Apartment apartment) {
         Apartment savedApartment = apartmentRepository.save(apartment);
 
-	Map<String, Long> response = Map.of("id", savedApartment.getId());
-	return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        Map<String, UUID> response = Map.of("id", savedApartment.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteApartment(@PathVariable String id) {
