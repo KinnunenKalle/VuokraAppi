@@ -8,6 +8,7 @@ import UserInfo from "./components/UserInfo.js";
 import Homepage from "./components/Homepage.js";
 import Apartments from "./components/Apartments.js";
 import DrawerNavigator from "./components/DrawerNavigator.js";
+import AddApartment from "./components/AddApartment.js";
 
 const Stack = createNativeStackNavigator();
 
@@ -16,8 +17,12 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="MainApp" component={DrawerNavigator} />
+        <Stack.Screen
+          name="MainApp"
+          children={(props) => <DrawerNavigator {...props} />}
+        />
         <Stack.Screen name="Apartments" component={Apartments} />
+        <Stack.Screen name="AddApartment" component={AddApartment} />
       </Stack.Navigator>
     </NavigationContainer>
   );

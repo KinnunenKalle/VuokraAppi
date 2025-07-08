@@ -1,7 +1,14 @@
 import { View, Text, TextInput } from "react-native";
 import React from "react";
 
-const Input = ({ title, placeholder, keyboard, is_password }) => {
+const Input = ({
+  title,
+  placeholder,
+  keyboard,
+  is_password,
+  value,
+  onChangeText,
+}) => {
   return (
     <View style={{ marginVertical: 10 }}>
       <Text style={{ fontSize: 16, color: "#03bafc" }}>{title}</Text>
@@ -16,6 +23,8 @@ const Input = ({ title, placeholder, keyboard, is_password }) => {
         }}
         secureTextEntry={is_password}
         keyboardType={keyboard}
+        value={value}
+        onChangeText={onChangeText}
       />
     </View>
   );

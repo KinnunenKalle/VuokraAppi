@@ -66,7 +66,7 @@ export default function Login({ navigation }) {
 
           // Käytetään access tokenia backend-APIin
           const res = await fetch(
-            "https://vuokraappi-api-gw-dev.azure-api.net/apartments/1",
+            "https://vuokraappi-api-gw-dev.azure-api.net/users",
             {
               headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -77,9 +77,9 @@ export default function Login({ navigation }) {
           const data = await res.json();
 
           //Navigoidaan kirjautumisen jälkeen vuokranantajan näkymään
-          navigation.navigate("MainApp");
+          navigation.navigate("MainApp", { accessToken });
 
-          Alert.alert("API-vastaus", JSON.stringify(data));
+          Alert.alert("Kirjautuminen onnistui!");
         } catch (err) {
           console.error("Virhe tokenin haussa tai API-kutsussa", err);
           Alert.alert("Virhe", "Kirjautuminen tai API-kutsu epäonnistui.");

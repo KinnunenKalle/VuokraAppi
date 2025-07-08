@@ -6,6 +6,7 @@ import {
   DrawerItem,
 } from "@react-navigation/drawer";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { Alert } from "react-native";
 
 import Homepage from "./Homepage";
 
@@ -13,7 +14,55 @@ import UserInfo from "./UserInfo";
 
 const Drawer = createDrawerNavigator();
 
-export default function DrawerNavigator() {
+export const logoutWithConfirmation = async (accessToken, navigation) => {
+  Alert.alert(
+    "Vahvista uloskirjautuminen",
+    "Haluatko varmasti kirjautua ulos?",
+    [
+      {
+        text: "Peruuta",
+        style: "cancel",
+      },
+      {
+        text: "Kirjaudu ulos",
+        style: "destructive",
+
+        onPress: async () => {
+          console.log("Access token:", accessToken);
+          try {
+            const response = await fetch(
+              "https://graph.microsoft.com/v1.0/me/revokeSignInSessions",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              }
+            );
+
+            if (response.ok) {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Login" }],
+              });
+            } else {
+              const error = await response.json();
+              console.error("Uloskirjautuminen epäonnistui:", error);
+              Alert.alert("Virhe", "Uloskirjautuminen epäonnistui.");
+            }
+          } catch (err) {
+            console.error("Virhe uloskirjautumisessa:", err);
+            Alert.alert("Virhe", "Uloskirjautuminen epäonnistui.");
+          }
+        },
+      },
+    ]
+  );
+};
+
+export default function DrawerNavigator({ route, navigation }) {
+  const { accessToken } = route.params || {};
+  console.log("Access token Drawerissa:", accessToken);
   return (
     <Drawer.Navigator
       initialRouteName="Etusivu"
@@ -28,10 +77,7 @@ export default function DrawerNavigator() {
             label="Kirjaudu ulos"
             labelStyle={{ color: "blue" }}
             onPress={() => {
-              props.navigation.reset({
-                index: 0,
-                routes: [{ name: "Login" }],
-              });
+              logoutWithConfirmation(accessToken, props.navigation);
             }}
           />
         </DrawerContentScrollView>
@@ -49,6 +95,7 @@ export default function DrawerNavigator() {
       <Drawer.Screen
         name="UserInfo"
         component={UserInfo}
+        initialParams={{ accessToken: accessToken }}
         options={{
           title: "Muokkaa käyttäjätietoja",
           drawerIcon: ({ color, size }) => (

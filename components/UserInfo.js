@@ -2,19 +2,92 @@ import {
   View,
   Text,
   Dimensions,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   ScrollView,
+  Alert,
 } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import Input from "./Input.js";
+import Input from "./Input";
 
-export default function UserInfo({ navigation }) {
+export default function UserInfo({ navigation, route }) {
+  const { accessToken } = route.params; // accessToken tulee kirjautumisen jälkeen
+
+  const [userId, setUserId] = useState(null);
+  const [userData, setUserData] = useState({
+    givenName: "",
+    surname: "",
+    mail: "",
+    mobilePhone: "",
+  });
+
+  // Haetaan käyttäjän tiedot
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const res = await fetch(
+          "https://vuokraaappi-api-gw-dev.azure-api.net/users",
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        const data = await res.json();
+        const user = data[0]; // Jos oletetaan vain yksi käyttäjä
+
+        setUserId(user.id);
+        setUserData({
+          givenName: user.givenName || "",
+          surname: user.surname || "",
+          mail: user.mail || "",
+          mobilePhone: user.mobilePhone || "",
+        });
+      } catch (error) {
+        console.error("Virhe käyttäjän hakemisessa", error);
+        Alert.alert("Virhe", "Käyttäjätietojen hakeminen epäonnistui.");
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // Päivitetään tilaa syötteiden muuttuessa
+  const handleChange = (key, value) => {
+    setUserData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Päivitä käyttäjän tiedot
+  const updateUserData = async () => {
+    try {
+      const response = await fetch(
+        `https://vuokraaappi-api-gw-dev.azure-api.net/users/${userId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        }
+      );
+
+      if (response.ok) {
+        Alert.alert("Onnistui", "Käyttäjätiedot päivitetty.");
+      } else {
+        Alert.alert("Virhe", "Tietojen päivitys epäonnistui.");
+      }
+    } catch (err) {
+      console.error("Virhe päivityksessä", err);
+      Alert.alert("Virhe", "Tietojen päivitys epäonnistui.");
+    }
+  };
+
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, flexDirection: "column", justifyContent: "center" }}
+      style={{ flex: 1 }}
       behavior="padding"
       enabled
       keyboardVerticalOffset={100}
@@ -34,10 +107,11 @@ export default function UserInfo({ navigation }) {
               paddingTop: 45,
             }}
           >
-            <Text style={{ color: "white", fontSize: 22, fontWight: "bold" }}>
+            <Text style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>
               VUOKRA ÄPPI
             </Text>
           </LinearGradient>
+
           <View
             style={{
               elevation: 10,
@@ -59,56 +133,49 @@ export default function UserInfo({ navigation }) {
             >
               Muokkaa tietojasi
             </Text>
-            <Input title="Etunimi" placeholder="Etunimesi" keyboard="default" />
+
+            <Input
+              title="Etunimi"
+              placeholder="Etunimesi"
+              keyboard="default"
+              value={userData.givenName}
+              onChangeText={(text) => handleChange("givenName", text)}
+            />
             <Input
               title="Sukunimi"
               placeholder="Sukunimesi"
               keyboard="default"
+              value={userData.surname}
+              onChangeText={(text) => handleChange("surname", text)}
             />
             <Input
               title="Sähköposti"
-              placeholder="Syötä sähköpostisi tähän"
+              placeholder="Sähköpostisi"
               keyboard="email-address"
+              value={userData.mail}
+              onChangeText={(text) => handleChange("mail", text)}
             />
             <Input
-              title="Puhelinnumero"
+              title="Puhelin"
               placeholder="Puhelinnumerosi"
-              keyboard="numeric"
-            />
-            <Input
-              title="Salasana"
-              placeholder="*******"
-              keyboard="default"
-              is_password={true}
-            />
-            <Input
-              title="Vahvista salasanasi"
-              placeholder="*******"
-              keyboard="default"
-              is_password={true}
+              keyboard="phone-pad"
+              value={userData.mobilePhone}
+              onChangeText={(text) => handleChange("mobilePhone", text)}
             />
 
-            <TouchableOpacity onPress={() => {}}>
+            <TouchableOpacity onPress={updateUserData}>
               <Text
                 style={{
                   color: "#03bafc",
                   fontSize: 16,
-                  textAlign: "left",
-                  marginBottom: 10,
-                  marginTop: 0,
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  marginVertical: 15,
                 }}
               >
-                Rekisteröidy
+                Tallenna muutokset
               </Text>
             </TouchableOpacity>
-            <Text
-              style={{ color: "#03bafc", fontSize: 14, textAlign: "center" }}
-            >
-              Onko sinulla jo käyttäjä?{"   "}
-              <Text onPress={() => navigation.navigate("Login")}>
-                Kirjaudu sisään
-              </Text>
-            </Text>
           </View>
         </View>
       </ScrollView>

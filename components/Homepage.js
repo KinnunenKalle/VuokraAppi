@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   ScrollView,
+  StyleSheet,
 } from "react-native";
 import React from "react";
 import { LinearGradient } from "expo-linear-gradient";
@@ -65,6 +66,30 @@ export default function Homepage({ navigation }) {
           </View>
         </View>
       </ScrollView>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("AddApartment")} // Oletettu reitti
+      >
+        <Text style={styles.fabText}>＋ Lisää asunto</Text>
+      </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  fab: {
+    position: "absolute",
+    bottom: 25,
+    right: 20,
+    backgroundColor: "#03bafc",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    elevation: 5,
+  },
+  fabText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+});
