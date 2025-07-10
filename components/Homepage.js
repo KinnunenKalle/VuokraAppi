@@ -11,7 +11,6 @@ import {
 import React from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Input from "./Input.js";
-import Apartments from "./Apartments.js";
 
 export default function Homepage({ navigation }) {
   return (
@@ -66,12 +65,6 @@ export default function Homepage({ navigation }) {
           </View>
         </View>
       </ScrollView>
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate("AddApartment")} // Oletettu reitti
-      >
-        <Text style={styles.fabText}>＋ Lisää asunto</Text>
-      </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 }

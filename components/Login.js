@@ -1,18 +1,18 @@
 import { View, Text, Dimensions, TouchableOpacity, Alert } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import Input from "./Input.js"; // oletettavasti sähköposti/salasana kentät
+import Input from "./Input.js";
 import * as WebBrowser from "expo-web-browser";
 import {
   useAuthRequest,
   makeRedirectUri,
   exchangeCodeAsync,
 } from "expo-auth-session";
+import { useAuth } from "./AuthContext"; // ✅ tuodaan context
+import jwt_decode from "jwt-decode";
 
-// Tarvitaan sulkemaan selain automaattisesti kirjautumisen jälkeen
 WebBrowser.maybeCompleteAuthSession();
 
-// Entra ID:n päätepisteet
 const discovery = {
   authorizationEndpoint:
     "https://vuokraappi.ciamlogin.com/95e94f96-fda6-4111-953a-439ab54fce6e/oauth2/v2.0/authorize",
@@ -21,12 +21,8 @@ const discovery = {
 };
 
 export default function Login({ navigation }) {
-  // Luo redirectUri joka toimii Expo Go:ssa (käyttää proxyä)
-  const redirectUri = makeRedirectUri({
-    useProxy: true,
-  });
+  const redirectUri = makeRedirectUri({ useProxy: true });
 
-  // Luodaan kirjautumispyyntö
   const [request, response, promptAsync] = useAuthRequest(
     {
       clientId: "ea427158-f1f3-47af-b515-8da8a2744379",
@@ -40,15 +36,14 @@ export default function Login({ navigation }) {
     discovery
   );
 
-  // Kun käyttäjä on kirjautunut ja saanut koodin, haetaan token ja kutsutaan APIa
-  React.useEffect(() => {
+  const { setAccessToken, setUserId } = useAuth(); // ✅ käyttö
+
+  useEffect(() => {
     const getTokenAndCallApi = async () => {
       if (response?.type === "success") {
         const code = response.params.code;
 
         try {
-          // Vaihdetaan authorization code access tokeniksi
-
           const tokenResult = await exchangeCodeAsync(
             {
               clientId: "ea427158-f1f3-47af-b515-8da8a2744379",
@@ -62,33 +57,29 @@ export default function Login({ navigation }) {
           );
 
           const accessToken = tokenResult.accessToken;
-          const idToken = tokenResult.idToken;
 
-          // Käytetään access tokenia backend-APIin
-          const res = await fetch(
-            "https://vuokraappi-api-gw-dev.azure-api.net/users",
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-              },
-            }
-          );
+          // 🔓 Purataan oid tokenista (object ID = user ID)
+          const decoded = jwt_decode(accessToken);
+          const userId = decoded?.oid;
 
-          const data = await res.json();
+          if (!userId) {
+            Alert.alert("Virhe", "Käyttäjä-ID puuttuu tokenista.");
+            return;
+          }
 
-          const userId = data?.id || null;
+          // ✅ Tallenna contextiin
+          setAccessToken(accessToken);
+          setUserId(userId);
 
-          //Navigoidaan kirjautumisen jälkeen vuokranantajan näkymään
-
-          navigation.navigate("MainApp", {
-            accessToken: accessToken,
-            userId: userId,
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "MainApp" }],
           });
 
           Alert.alert("Kirjautuminen onnistui!");
         } catch (err) {
-          console.error("Virhe tokenin haussa tai API-kutsussa", err);
-          Alert.alert("Virhe", "Kirjautuminen tai API-kutsu epäonnistui.");
+          console.error("Virhe tokenin haussa tai JWT-purussa", err);
+          Alert.alert("Virhe", "Kirjautuminen epäonnistui.");
         }
       }
     };
@@ -127,7 +118,6 @@ export default function Login({ navigation }) {
           paddingHorizontal: 15,
         }}
       >
-        {/* Kirjautumisnappi avaa selaimen */}
         <TouchableOpacity onPress={() => promptAsync()}>
           <Text
             style={{

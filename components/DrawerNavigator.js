@@ -7,18 +7,19 @@ import {
 } from "@react-navigation/drawer";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { Alert } from "react-native";
-import { Base64 } from "js-base64";
 
 import Homepage from "./Homepage";
-
 import UserInfo from "./UserInfo";
+import { useAuth } from "./AuthContext"; // ✅ TUONTI
 
 const Drawer = createDrawerNavigator();
 
 export const logoutWithConfirmation = async (
   accessToken,
   userId,
-  navigation
+  navigation,
+  setAccessToken,
+  setUserId
 ) => {
   Alert.alert(
     "Vahvista uloskirjautuminen",
@@ -40,11 +41,16 @@ export const logoutWithConfirmation = async (
                 method: "POST",
                 headers: {
                   Authorization: `Bearer ${accessToken}`,
+                  "Content-Type": "application/json",
                 },
               }
             );
 
             if (response.ok) {
+              // ✅ Tyhjennä käyttäjätiedot contextista
+              setAccessToken(null);
+              setUserId(null);
+
               navigation.reset({
                 index: 0,
                 routes: [{ name: "Login" }],
@@ -64,8 +70,8 @@ export const logoutWithConfirmation = async (
   );
 };
 
-export default function DrawerNavigator({ navigation, route }) {
-  const { accessToken, userId } = route.params || {};
+export default function DrawerNavigator({ navigation }) {
+  const { accessToken, userId, setAccessToken, setUserId } = useAuth(); // ✅ Contextista
 
   return (
     <Drawer.Navigator
@@ -80,9 +86,15 @@ export default function DrawerNavigator({ navigation, route }) {
           <DrawerItem
             label="Kirjaudu ulos"
             labelStyle={{ color: "blue" }}
-            onPress={() => {
-              logoutWithConfirmation(accessToken, userId, navigation);
-            }}
+            onPress={() =>
+              logoutWithConfirmation(
+                accessToken,
+                userId,
+                navigation,
+                setAccessToken,
+                setUserId
+              )
+            }
           />
         </DrawerContentScrollView>
       )}
@@ -99,7 +111,6 @@ export default function DrawerNavigator({ navigation, route }) {
       <Drawer.Screen
         name="UserInfo"
         component={UserInfo}
-        initialParams={{ accessToken }}
         options={{
           title: "Muokkaa käyttäjätietoja",
           drawerIcon: ({ color, size }) => (

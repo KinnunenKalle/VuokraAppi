@@ -34,7 +34,7 @@ export default function UserInfo({ navigation }) {
               paddingTop: 45,
             }}
           >
-            <Text style={{ color: "white", fontSize: 22, fontWight: "bold" }}>
+            <Text style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>
               VUOKRA ÄPPI
             </Text>
           </LinearGradient>
@@ -101,14 +101,21 @@ export default function UserInfo({ navigation }) {
                 Rekisteröidy
               </Text>
             </TouchableOpacity>
-            <Text
-              style={{ color: "#03bafc", fontSize: 14, textAlign: "center" }}
-            >
-              Onko sinulla jo käyttäjä?{"   "}
-              <Text onPress={() => navigation.navigate("Login")}>
+            <View style={{ flexDirection: "row", justifyContent: "center" }}>
+              <Text style={{ color: "#03bafc", fontSize: 14 }}>
+                Onko sinulla jo käyttäjä?{"   "}
+              </Text>
+              <Text
+                style={{
+                  color: "#03bafc",
+                  fontSize: 14,
+                  textDecorationLine: "underline",
+                }}
+                onPress={() => navigation.navigate("Login")}
+              >
                 Kirjaudu sisään
               </Text>
-            </Text>
+            </View>
           </View>
         </View>
       </ScrollView>

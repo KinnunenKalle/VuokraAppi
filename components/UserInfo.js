@@ -10,10 +10,11 @@ import {
 import React, { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Input from "./Input";
-import jwt_decode from "jwt-decode"; //  Korjattu import
+import jwt_decode from "jwt-decode";
+import { useAuth } from "./AuthContext"; // ✅ TUONTI
 
-export default function UserInfo({ navigation, route }) {
-  const { accessToken } = route.params;
+export default function UserInfo({ navigation }) {
+  const { accessToken } = useAuth(); // ✅ KÄYTTÖ
 
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState({
@@ -26,13 +27,11 @@ export default function UserInfo({ navigation, route }) {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        //  1. Dekoodataan token ja poimitaan oid
         const decoded = jwt_decode(accessToken);
         const oid = decoded.oid;
 
         if (!oid) throw new Error("OID puuttuu tokenista");
 
-        //  2. Haetaan käyttäjän tiedot OID:lla
         const res = await fetch(
           `https://vuokraappi-api-gw-dev.azure-api.net/users/${oid}`,
           {
@@ -45,7 +44,6 @@ export default function UserInfo({ navigation, route }) {
         if (!res.ok) throw new Error("Virhe palvelimelta");
 
         const user = await res.json();
-        console.log(user.id);
         setUserId(user.id);
         setUserData({
           givenName: user.givenName || "",
