@@ -17,6 +17,7 @@ export default function Apartments({ navigation }) {
   const { accessToken, userId } = useAuth();
 
   useEffect(() => {
+    // Haetaan asunnot kun käyttäjäID ja token ovat saatavilla
     if (userId && accessToken) {
       getApartments();
     }
@@ -24,6 +25,7 @@ export default function Apartments({ navigation }) {
 
   const getApartments = () => {
     const URL = `https://vuokraappi-api-gw-dev.azure-api.net/apartments/user/${userId}`;
+
     fetch(URL, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -31,18 +33,23 @@ export default function Apartments({ navigation }) {
     })
       .then((res) => {
         if (!res.ok) {
+          // Jos palvelin vastaa virheellä, heitetään poikkeus
           throw new Error(`HTTP error! status: ${res.status}`);
         }
+        // Parsitaan vastaus JSONiksi
         return res.json();
       })
       .then((data) => {
-        setApartments(data);
-        console.log(data);
+        // API voi palauttaa asunnot joko suoraan listana (data)
+        // tai objektin sisällä (esim. data.apartments)
+        // Valitaan ensin data.apartments jos se on olemassa
+        setApartments(data.apartments || data);
       })
       .catch((error) => {
         console.error("Failed to fetch apartments:", error);
       });
   };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -52,7 +59,10 @@ export default function Apartments({ navigation }) {
       <View style={styles.container}>
         <FlatList
           data={apartments}
-          keyExtractor={(item, index) => index.toString()}
+          // Käytetään uniikkia id:tä avaimena, jos ei ole, käytetään indeksiä varalta
+          keyExtractor={(item, index) =>
+            item.id ? item.id.toString() : index.toString()
+          }
           contentContainerStyle={{ paddingBottom: 150 }}
           ListHeaderComponent={
             <LinearGradient
@@ -64,14 +74,21 @@ export default function Apartments({ navigation }) {
               <Text style={styles.headerText}>Hallinnassa olevat asuntosi</Text>
             </LinearGradient>
           }
+          // Renderöidään lista: näytetään esim. osoite tai id, jos osoitetta ei ole
           renderItem={({ item }) => (
-            <View>
-              <Text style={styles.itemText}>{item.apartmentid}</Text>
+            <View style={styles.item}>
+              <Text style={styles.itemText}>
+                {item.address || item.name || item.id || "Tuntematon asunto"}
+              </Text>
             </View>
+          )}
+          // Jos asuntoja ei löydy, näytetään käyttäjälle viesti
+          ListEmptyComponent={() => (
+            <Text style={styles.emptyText}>Ei asuntoja näytettäväksi</Text>
           )}
         />
 
-        {/* Floating Button fixed on bottom right */}
+        {/* Lisää asunto -painike näytön oikeassa alakulmassa */}
         <TouchableOpacity
           style={styles.fab}
           onPress={() => navigation.navigate("AddApartment")}
@@ -100,10 +117,21 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
   },
+  item: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+    marginHorizontal: 15,
+  },
   itemText: {
     fontSize: 18,
     textAlign: "center",
-    marginVertical: 10,
+  },
+  emptyText: {
+    marginTop: 50,
+    textAlign: "center",
+    fontSize: 16,
+    color: "#999",
   },
   fab: {
     position: "absolute",
