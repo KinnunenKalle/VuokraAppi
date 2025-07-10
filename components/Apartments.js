@@ -1,14 +1,14 @@
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  Dimensions,
   FlatList,
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
 } from "react-native";
-import React, { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "./AuthContext";
 
@@ -17,8 +17,10 @@ export default function Apartments({ navigation }) {
   const { accessToken, userId } = useAuth();
 
   useEffect(() => {
-    getApartments();
-  }, []);
+    if (userId && accessToken) {
+      getApartments();
+    }
+  }, [userId, accessToken]);
 
   const getApartments = () => {
     const URL = `https://vuokraappi-api-gw-dev.azure-api.net/apartments/user/${userId}`;
@@ -27,12 +29,20 @@ export default function Apartments({ navigation }) {
         Authorization: `Bearer ${accessToken}`,
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
         setApartments(data);
+        console.log(data);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch apartments:", error);
       });
   };
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}

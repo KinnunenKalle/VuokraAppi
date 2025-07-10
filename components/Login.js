@@ -61,6 +61,7 @@ export default function Login({ navigation }) {
           // 🔓 Purataan oid tokenista (object ID = user ID)
           const decoded = jwt_decode(accessToken);
           const userId = decoded?.oid;
+          console.log(userId);
 
           if (!userId) {
             Alert.alert("Virhe", "Käyttäjä-ID puuttuu tokenista.");
