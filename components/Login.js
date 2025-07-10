@@ -76,8 +76,14 @@ export default function Login({ navigation }) {
 
           const data = await res.json();
 
+          const userId = data?.id || null;
+
           //Navigoidaan kirjautumisen jälkeen vuokranantajan näkymään
-          navigation.navigate("MainApp", { accessToken });
+
+          navigation.navigate("MainApp", {
+            accessToken: accessToken,
+            userId: userId,
+          });
 
           Alert.alert("Kirjautuminen onnistui!");
         } catch (err) {

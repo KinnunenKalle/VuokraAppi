@@ -10,9 +10,10 @@ import {
 import React, { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Input from "./Input";
+import jwt_decode from "jwt-decode"; //  Korjattu import
 
 export default function UserInfo({ navigation, route }) {
-  const { accessToken } = route.params; // accessToken tulee kirjautumisen jälkeen
+  const { accessToken } = route.params;
 
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState({
@@ -22,12 +23,18 @@ export default function UserInfo({ navigation, route }) {
     mobilePhone: "",
   });
 
-  // Haetaan käyttäjän tiedot
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        //  1. Dekoodataan token ja poimitaan oid
+        const decoded = jwt_decode(accessToken);
+        const oid = decoded.oid;
+
+        if (!oid) throw new Error("OID puuttuu tokenista");
+
+        //  2. Haetaan käyttäjän tiedot OID:lla
         const res = await fetch(
-          "https://vuokraaappi-api-gw-dev.azure-api.net/users",
+          `https://vuokraappi-api-gw-dev.azure-api.net/users/${oid}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -35,9 +42,10 @@ export default function UserInfo({ navigation, route }) {
           }
         );
 
-        const data = await res.json();
-        const user = data[0]; // Jos oletetaan vain yksi käyttäjä
+        if (!res.ok) throw new Error("Virhe palvelimelta");
 
+        const user = await res.json();
+        console.log(user.id);
         setUserId(user.id);
         setUserData({
           givenName: user.givenName || "",
@@ -54,16 +62,14 @@ export default function UserInfo({ navigation, route }) {
     fetchUserData();
   }, []);
 
-  // Päivitetään tilaa syötteiden muuttuessa
   const handleChange = (key, value) => {
     setUserData((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Päivitä käyttäjän tiedot
   const updateUserData = async () => {
     try {
       const response = await fetch(
-        `https://vuokraaappi-api-gw-dev.azure-api.net/users/${userId}`,
+        `https://vuokraappi-api-gw-dev.azure-api.net/users/${userId}`,
         {
           method: "PATCH",
           headers: {

@@ -7,6 +7,7 @@ import {
 } from "@react-navigation/drawer";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { Alert } from "react-native";
+import { Base64 } from "js-base64";
 
 import Homepage from "./Homepage";
 
@@ -14,7 +15,11 @@ import UserInfo from "./UserInfo";
 
 const Drawer = createDrawerNavigator();
 
-export const logoutWithConfirmation = async (accessToken, navigation) => {
+export const logoutWithConfirmation = async (
+  accessToken,
+  userId,
+  navigation
+) => {
   Alert.alert(
     "Vahvista uloskirjautuminen",
     "Haluatko varmasti kirjautua ulos?",
@@ -28,10 +33,9 @@ export const logoutWithConfirmation = async (accessToken, navigation) => {
         style: "destructive",
 
         onPress: async () => {
-          console.log("Access token:", accessToken);
           try {
             const response = await fetch(
-              "https://graph.microsoft.com/v1.0/me/revokeSignInSessions",
+              `https://vuokraappi-api-gw-dev.azure-api.net/users/${userId}/revokeSignInSessions`,
               {
                 method: "POST",
                 headers: {
@@ -60,9 +64,9 @@ export const logoutWithConfirmation = async (accessToken, navigation) => {
   );
 };
 
-export default function DrawerNavigator({ route, navigation }) {
-  const { accessToken } = route.params || {};
-  console.log("Access token Drawerissa:", accessToken);
+export default function DrawerNavigator({ navigation, route }) {
+  const { accessToken, userId } = route.params || {};
+
   return (
     <Drawer.Navigator
       initialRouteName="Etusivu"
@@ -77,7 +81,7 @@ export default function DrawerNavigator({ route, navigation }) {
             label="Kirjaudu ulos"
             labelStyle={{ color: "blue" }}
             onPress={() => {
-              logoutWithConfirmation(accessToken, props.navigation);
+              logoutWithConfirmation(accessToken, userId, navigation);
             }}
           />
         </DrawerContentScrollView>
@@ -95,7 +99,7 @@ export default function DrawerNavigator({ route, navigation }) {
       <Drawer.Screen
         name="UserInfo"
         component={UserInfo}
-        initialParams={{ accessToken: accessToken }}
+        initialParams={{ accessToken }}
         options={{
           title: "Muokkaa käyttäjätietoja",
           drawerIcon: ({ color, size }) => (

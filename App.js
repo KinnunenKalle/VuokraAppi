@@ -17,10 +17,7 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen
-          name="MainApp"
-          children={(props) => <DrawerNavigator {...props} />}
-        />
+        <Stack.Screen name="MainApp" component={DrawerNavigator} />
         <Stack.Screen name="Apartments" component={Apartments} />
         <Stack.Screen name="AddApartment" component={AddApartment} />
       </Stack.Navigator>
