@@ -1,15 +1,21 @@
-import { View, Text, Dimensions, TouchableOpacity, Alert } from "react-native";
+import {
+  View,
+  Text,
+  Dimensions,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+} from "react-native";
 import React, { useEffect } from "react";
-import { LinearGradient } from "expo-linear-gradient";
-import Input from "./Input.js";
 import * as WebBrowser from "expo-web-browser";
 import {
   useAuthRequest,
   makeRedirectUri,
   exchangeCodeAsync,
 } from "expo-auth-session";
-import { useAuth } from "./AuthContext"; // ✅ tuodaan context
+import { useAuth } from "./AuthContext";
 import jwt_decode from "jwt-decode";
+import Logo from "./Logo"; // ✅ varmista oikea polku
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -36,13 +42,12 @@ export default function Login({ navigation }) {
     discovery
   );
 
-  const { setAccessToken, setUserId } = useAuth(); // ✅ käyttö
+  const { setAccessToken, setUserId } = useAuth();
 
   useEffect(() => {
     const getTokenAndCallApi = async () => {
       if (response?.type === "success") {
         const code = response.params.code;
-
         try {
           const tokenResult = await exchangeCodeAsync(
             {
@@ -57,8 +62,6 @@ export default function Login({ navigation }) {
           );
 
           const accessToken = tokenResult.accessToken;
-
-          // 🔓 Purataan oid tokenista (object ID = user ID)
           const decoded = jwt_decode(accessToken);
           const userId = decoded?.oid;
 
@@ -67,7 +70,6 @@ export default function Login({ navigation }) {
             return;
           }
 
-          // ✅ Tallenna contextiin
           setAccessToken(accessToken);
           setUserId(userId);
 
@@ -88,51 +90,56 @@ export default function Login({ navigation }) {
   }, [response]);
 
   return (
-    <View>
-      <LinearGradient
-        colors={["#42a1f5", "#03bafc", "#42c5f5"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={{
-          borderBottomLeftRadius: 15,
-          borderBottomRightRadius: 15,
-          height: Dimensions.get("window").height * 0.2,
-          width: "100%",
-          alignItems: "center",
-          paddingTop: 45,
-        }}
-      >
-        <Text style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>
-          VUOKRA ÄPPI
-        </Text>
-      </LinearGradient>
+    <View style={styles.container}>
+      <View style={styles.headerContainer}>
+        <Logo size={72} />
+        <Text style={styles.headerText}>Tervetuloa VuokraAppiin!</Text>
+      </View>
 
-      <View
-        style={{
-          elevation: 10,
-          backgroundColor: "white",
-          borderRadius: 10,
-          margin: 10,
-          marginTop: -20,
-          paddingVertical: 20,
-          paddingHorizontal: 15,
-        }}
-      >
-        <TouchableOpacity onPress={() => promptAsync()}>
-          <Text
-            style={{
-              color: "#03bafc",
-              fontSize: 16,
-              fontWeight: "bold",
-              textAlign: "center",
-              marginBottom: 10,
-              marginTop: 10,
-            }}
-          >
-            Kirjaudu sisään selaimessa
-          </Text>
+      <View style={styles.card}>
+        <TouchableOpacity onPress={() => promptAsync()} activeOpacity={0.8}>
+          <Text style={styles.buttonText}>Kirjaudu sisään selaimessa</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#f8fafc",
+    flex: 1,
+    justifyContent: "center",
+    paddingVertical: 32,
+  },
+  headerContainer: {
+    alignItems: "center",
+    marginBottom: 40,
+  },
+  headerText: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#334155",
+    marginTop: 12,
+    textAlign: "center",
+  },
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    marginHorizontal: 24,
+    paddingVertical: 30,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  buttonText: {
+    color: "#3b82f6",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+});
