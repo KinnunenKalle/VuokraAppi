@@ -14,7 +14,7 @@ public class Apartment {
     @GeneratedValue
     private UUID id;
     private String address;
-    private double rent;
+    private Double rent;
     @Column(name = "user_id")
     private UUID userId;
 
@@ -42,11 +42,11 @@ public class Apartment {
         this.address = address;
     }
 
-    public double getRent() {
+    public Double getRent() {
         return rent;
     }
 
-    public void setRent(double rent) {
+    public void setRent(Double rent) {
         this.rent = rent;
     }
 

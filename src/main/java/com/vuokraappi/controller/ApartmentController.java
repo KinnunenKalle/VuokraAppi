@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
@@ -60,6 +61,35 @@ public class ApartmentController {
         Map<String, UUID> response = Map.of("id", savedApartment.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> updateApartment(@PathVariable String id, @RequestBody Apartment apartmentUpdates) {
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid UUID format");
+        }
+
+        Optional<Apartment> optionalApartment = apartmentRepository.findById(uuid);
+        if (optionalApartment.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        } 
+
+        Apartment existingApartment = optionalApartment.get();
+
+        // Päivitetään vain kentät, jotka ovat ei-tyhjiä (tai ei-nulleja)
+        if (apartmentUpdates.getRent() != null) {
+            existingApartment.setRent(apartmentUpdates.getRent());
+        }
+        if (apartmentUpdates.getAddress() != null) {
+            existingApartment.setAddress(apartmentUpdates.getAddress());
+        }
+
+        Apartment updatedApartment = apartmentRepository.save(existingApartment);
+        return ResponseEntity.ok(updatedApartment);
+    }
+
 
 
     @DeleteMapping("/{id}")
