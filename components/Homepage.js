@@ -9,14 +9,14 @@ import {
   Platform,
   Pressable,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
+import Logo from "./Logo.js"; // Oletan, että Logo.js default-exporttaa logon
 
 export default function Homepage({ navigation }) {
   const scale = useSharedValue(1);
@@ -25,10 +25,10 @@ export default function Homepage({ navigation }) {
     transform: [{ scale: scale.value }],
   }));
 
-  const onPressApartment = () => {
-    scale.value = withTiming(0.8, { duration: 200 }, () => {
+  const onPressNavigate = () => {
+    scale.value = withTiming(0.95, { duration: 120 }, () => {
       runOnJS(navigation.navigate)("Apartments");
-      scale.value = withTiming(1, { duration: 200 });
+      scale.value = withTiming(1, { duration: 180 });
     });
   };
 
@@ -36,24 +36,20 @@ export default function Homepage({ navigation }) {
     <KeyboardAvoidingView
       style={styles.keyboardContainer}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      enabled
       keyboardVerticalOffset={100}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <LinearGradient
-          colors={["#42a1f5", "#03bafc", "#42c5f5"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
-          <Text style={styles.headerText}>Vuokranantajan näkymä</Text>
-        </LinearGradient>
+        {/* Logo-palkki */}
+        <View style={styles.logoContainer}>
+          <Logo />
+        </View>
 
+        {/* Kortti */}
         <View style={styles.cardContainer}>
-          <Pressable onPress={onPressApartment}>
+          <Pressable onPress={onPressNavigate}>
             <Animated.View style={[styles.card, animatedCardStyle]}>
               <View style={styles.cardContent}>
-                <Ionicons name="home-outline" size={22} color="#03bafc" />
+                <Feather name="home" size={22} color="#0f172a" />
                 <Text style={styles.cardText}>Asunnot</Text>
               </View>
             </Animated.View>
@@ -67,56 +63,50 @@ export default function Homepage({ navigation }) {
 const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
-    backgroundColor: "#f6f9fc",
+    backgroundColor: "#f8fafc",
   },
   scrollContainer: {
     flexGrow: 1,
   },
-  header: {
-    height: Dimensions.get("window").height * 0.12,
-    width: "100%",
+  logoContainer: {
+    height: Dimensions.get("window").height * 0.14,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    backgroundColor: "#1e293b", // tumma pohja logolle
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 6,
-  },
-  headerText: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "600",
-    letterSpacing: 0.5,
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 8,
   },
   cardContainer: {
-    marginTop: 30,
-    paddingHorizontal: 20,
+    marginTop: 36,
+    paddingHorizontal: 24,
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    paddingVertical: 26,
+    paddingHorizontal: 30,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 10,
   },
   cardContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   cardText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#03bafc",
+    color: "#1e293b",
+    letterSpacing: 0.5,
   },
 });
