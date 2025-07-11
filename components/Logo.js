@@ -1,17 +1,33 @@
-import React from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View, Text, StyleSheet, Animated, Platform } from "react-native";
 import { Svg, Path } from "react-native-svg";
 
 export default function Logo({ size = 64 }) {
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 5,
+      tension: 90,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
   return (
-    <View style={styles.container}>
-      <Svg
-        width={size}
-        height={size}
-        viewBox="0 0 64 64"
-        fill="none"
-        style={styles.icon}
-      >
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          transform: [{ scale: scaleAnim }],
+          opacity: scaleAnim.interpolate({
+            inputRange: [0.5, 1],
+            outputRange: [0, 1],
+          }),
+        },
+      ]}
+    >
+      <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
         {/* Talon ääriviivat */}
         <Path
           d="M32 10L12 26v24a2 2 0 002 2h36a2 2 0 002-2V26L32 10z"
@@ -32,9 +48,8 @@ export default function Logo({ size = 64 }) {
         />
       </Svg>
 
-      {/* VuokraAppi -teksti */}
       <Text style={styles.text}>VuokraAppi</Text>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -43,9 +58,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-  },
-  icon: {
-    marginRight: 8,
+    padding: 8,
   },
   text: {
     fontSize: 24,
