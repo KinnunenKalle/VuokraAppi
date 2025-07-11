@@ -2,7 +2,6 @@ import React from "react";
 import {
   View,
   Text,
-  Dimensions,
   KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
@@ -16,7 +15,7 @@ import Animated, {
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
-import Logo from "./Logo.js"; // Oletan, että Logo.js default-exporttaa logon
+import Logo from "./Logo";
 
 export default function Homepage({ navigation }) {
   const scale = useSharedValue(1);
@@ -26,7 +25,7 @@ export default function Homepage({ navigation }) {
   }));
 
   const onPressNavigate = () => {
-    scale.value = withTiming(0.95, { duration: 120 }, () => {
+    scale.value = withTiming(0.9, { duration: 120 }, () => {
       runOnJS(navigation.navigate)("Apartments");
       scale.value = withTiming(1, { duration: 180 });
     });
@@ -39,12 +38,12 @@ export default function Homepage({ navigation }) {
       keyboardVerticalOffset={100}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Logo-palkki */}
-        <View style={styles.logoContainer}>
-          <Logo />
+        {/* Logo näkyy suoraan sivun yläreunassa */}
+        <View style={styles.logoWrapper}>
+          <Logo size={72} />
         </View>
 
-        {/* Kortti */}
+        {/* Painikekortti */}
         <View style={styles.cardContainer}>
           <Pressable onPress={onPressNavigate}>
             <Animated.View style={[styles.card, animatedCardStyle]}>
@@ -68,21 +67,19 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
   },
-  logoContainer: {
-    height: Dimensions.get("window").height * 0.14,
-    justifyContent: "center",
+  logoWrapper: {
     alignItems: "center",
-    backgroundColor: "#1e293b", // tumma pohja logolle
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 8,
+    marginTop: 36,
+    marginBottom: 24,
+  },
+  title: {
+    marginTop: 12,
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#1e293b",
+    letterSpacing: 0.3,
   },
   cardContainer: {
-    marginTop: 36,
     paddingHorizontal: 24,
   },
   card: {
