@@ -1,26 +1,73 @@
+import React, { useState } from "react";
 import {
   View,
   Text,
   Dimensions,
-  TextInput,
   TouchableOpacity,
+  Alert,
   KeyboardAvoidingView,
   ScrollView,
+  Platform,
 } from "react-native";
-import React from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import Input from "./Input.js";
+import Input from "./Input.js"; // Oma komponentti kentille
+import { useAuth } from "./AuthContext"; // Haetaan accessToken ja userId kontekstista
 
-export default function UserInfo({ navigation }) {
+export default function AddApartment({ navigation }) {
+  // Tilat osoitteelle ja vuokralle
+  const [address, setAddress] = useState("");
+  const [rent, setRent] = useState("");
+
+  // AuthContextista haetaan kirjautuneen käyttäjän tiedot
+  const { accessToken, userId } = useAuth();
+
+  // Lähetetään asunto API:in
+  const handleAddApartment = () => {
+    // Tarkistetaan, että kaikki kentät on täytetty
+    if (!address || !rent) {
+      Alert.alert("Täytä kaikki kentät!");
+      return;
+    }
+
+    // Rakennetaan asunto-objekti JSON-muodossa
+    const newApartment = {
+      address,
+      rent: Number(rent), // varmistetaan että rent on numero
+      userId,
+    };
+
+    // Lähetetään POST-pyyntö API:in
+    fetch("https://vuokraappi-api-gw-dev.azure-api.net/apartments", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`, // Tunnistaudutaan tokenilla
+      },
+      body: JSON.stringify(newApartment), // Muunnetaan objekti JSONiksi
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`); // Heitetään virhe jos ei 2xx vastaus
+        return res.json(); // Parsitaan vastaus
+      })
+      .then((data) => {
+        Alert.alert("Asunto lisätty!"); // Ilmoitetaan onnistumisesta
+        navigation.navigate("Apartments"); // Palataan listaan (päivitetään automaattisesti)
+      })
+      .catch((err) => {
+        console.error("Virhe lisätessä asuntoa:", err); // Debug-tuloste
+        Alert.alert("Virhe", "Asunnon lisääminen epäonnistui."); // Näytetään virheilmoitus
+      });
+  };
+
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, flexDirection: "column", justifyContent: "center" }}
-      behavior="padding"
-      enabled
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={100}
     >
       <ScrollView>
         <View>
+          {/* Yläosan gradient-tunniste/otsikko */}
           <LinearGradient
             colors={["#42a1f5", "#03bafc", "#42c5f5"]}
             start={{ x: 0, y: 0 }}
@@ -35,87 +82,56 @@ export default function UserInfo({ navigation }) {
             }}
           >
             <Text style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>
-              VUOKRA ÄPPI
+              Lisää asunto
             </Text>
           </LinearGradient>
+
           <View
             style={{
               elevation: 10,
               backgroundColor: "white",
               borderRadius: 10,
               margin: 10,
-              marginTop: -20,
+              marginTop: -20, // nostetaan vähän ylöspäin
               paddingVertical: 20,
               paddingHorizontal: 15,
             }}
           >
-            <Text
-              style={{
-                fontSize: 17,
-                fontWeight: "bold",
-                color: "#03bafc",
-                textAlign: "center",
-              }}
-            >
-              Muokkaa tietojasi
-            </Text>
-            <Input title="Etunimi" placeholder="Etunimesi" keyboard="default" />
+            {/* Osoite-kenttä */}
             <Input
-              title="Sukunimi"
-              placeholder="Sukunimesi"
+              title="Osoite"
+              placeholder="Esim. Koivurannantie 6"
+              value={address}
+              onChangeText={setAddress}
               keyboard="default"
-            />
-            <Input
-              title="Sähköposti"
-              placeholder="Syötä sähköpostisi tähän"
-              keyboard="email-address"
-            />
-            <Input
-              title="Puhelinnumero"
-              placeholder="Puhelinnumerosi"
-              keyboard="numeric"
-            />
-            <Input
-              title="Salasana"
-              placeholder="*******"
-              keyboard="default"
-              is_password={true}
-            />
-            <Input
-              title="Vahvista salasanasi"
-              placeholder="*******"
-              keyboard="default"
-              is_password={true}
             />
 
-            <TouchableOpacity onPress={() => {}}>
+            {/* Vuokra-kenttä */}
+            <Input
+              title="Vuokra (€)"
+              placeholder="Esim. 750"
+              value={rent}
+              onChangeText={setRent}
+              keyboard="numeric"
+            />
+
+            {/* Lähetä-painike */}
+            <TouchableOpacity onPress={handleAddApartment}>
               <Text
                 style={{
-                  color: "#03bafc",
+                  backgroundColor: "#03bafc",
+                  color: "white",
+                  padding: 12,
+                  borderRadius: 8,
                   fontSize: 16,
-                  textAlign: "left",
-                  marginBottom: 10,
-                  marginTop: 0,
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  marginTop: 20,
                 }}
               >
-                Rekisteröidy
+                Tallenna asunto
               </Text>
             </TouchableOpacity>
-            <View style={{ flexDirection: "row", justifyContent: "center" }}>
-              <Text style={{ color: "#03bafc", fontSize: 14 }}>
-                Onko sinulla jo käyttäjä?{"   "}
-              </Text>
-              <Text
-                style={{
-                  color: "#03bafc",
-                  fontSize: 14,
-                  textDecorationLine: "underline",
-                }}
-                onPress={() => navigation.navigate("Login")}
-              >
-                Kirjaudu sisään
-              </Text>
-            </View>
           </View>
         </View>
       </ScrollView>

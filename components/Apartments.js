@@ -10,43 +10,40 @@ import {
   Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./AuthContext"; // Tuodaan autentikointikonteksti accessTokenin ja userId:n saamiseksi
 
 export default function Apartments({ navigation }) {
-  const [apartments, setApartments] = useState([]);
-  const { accessToken, userId } = useAuth();
+  const [apartments, setApartments] = useState([]); // Tallennetaan haetut asunnot tilaan
+  const { accessToken, userId } = useAuth(); // Haetaan kirjautuneen käyttäjän tiedot
 
+  // Kun käyttäjä tai accessToken vaihtuu (tai näkymä aukeaa), haetaan asunnot
   useEffect(() => {
-    // Haetaan asunnot kun käyttäjäID ja token ovat saatavilla
     if (userId && accessToken) {
       getApartments();
     }
   }, [userId, accessToken]);
 
+  // Funktio hakee käyttäjän hallinnoimat asunnot API:sta
   const getApartments = () => {
     const URL = `https://vuokraappi-api-gw-dev.azure-api.net/apartments/user/${userId}`;
 
     fetch(URL, {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`, // Lähetetään accessToken Authorization-headerissa
       },
     })
       .then((res) => {
         if (!res.ok) {
-          // Jos palvelin vastaa virheellä, heitetään poikkeus
           throw new Error(`HTTP error! status: ${res.status}`);
         }
-        // Parsitaan vastaus JSONiksi
         return res.json();
       })
       .then((data) => {
-        // API voi palauttaa asunnot joko suoraan listana (data)
-        // tai objektin sisällä (esim. data.apartments)
-        // Valitaan ensin data.apartments jos se on olemassa
+        // API voi palauttaa listan joko suoraan tai objektin sisällä (data.apartments)
         setApartments(data.apartments || data);
       })
       .catch((error) => {
-        console.error("Failed to fetch apartments:", error);
+        console.error("Failed to fetch apartments:", error); // Virheen lokitus
       });
   };
 
@@ -58,12 +55,12 @@ export default function Apartments({ navigation }) {
     >
       <View style={styles.container}>
         <FlatList
-          data={apartments}
-          // Käytetään uniikkia id:tä avaimena, jos ei ole, käytetään indeksiä varalta
+          data={apartments} // Lista näytettävistä asunnoista
           keyExtractor={(item, index) =>
             item.id ? item.id.toString() : index.toString()
           }
           contentContainerStyle={{ paddingBottom: 150 }}
+          // Listaotsikko yläreunaan
           ListHeaderComponent={
             <LinearGradient
               colors={["#42a1f5", "#03bafc", "#42c5f5"]}
@@ -74,21 +71,26 @@ export default function Apartments({ navigation }) {
               <Text style={styles.headerText}>Hallinnassa olevat asuntosi</Text>
             </LinearGradient>
           }
-          // Renderöidään lista: näytetään esim. osoite tai id, jos osoitetta ei ole
+          // Renderöidään yksittäinen asunto rivinä – koko rivi toimii napin tavoin
           renderItem={({ item }) => (
-            <View style={styles.item}>
+            <TouchableOpacity
+              style={styles.item}
+              onPress={() =>
+                navigation.navigate("ApartmentDetails", { apartment: item })
+              }
+            >
               <Text style={styles.itemText}>
                 {item.address || item.name || item.id || "Tuntematon asunto"}
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
-          // Jos asuntoja ei löydy, näytetään käyttäjälle viesti
+          // Näytetään, jos käyttäjällä ei ole asuntoja
           ListEmptyComponent={() => (
             <Text style={styles.emptyText}>Ei asuntoja näytettäväksi</Text>
           )}
         />
 
-        {/* Lisää asunto -painike näytön oikeassa alakulmassa */}
+        {/* Lisää asunto -painike oikeassa alakulmassa */}
         <TouchableOpacity
           style={styles.fab}
           onPress={() => navigation.navigate("AddApartment")}
@@ -100,10 +102,9 @@ export default function Apartments({ navigation }) {
   );
 }
 
+// Tyylit
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
