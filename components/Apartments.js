@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,44 +10,58 @@ import {
   Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useAuth } from "./AuthContext"; // Tuodaan autentikointikonteksti accessTokenin ja userId:n saamiseksi
+import { useAuth } from "./AuthContext";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function Apartments({ navigation }) {
-  const [apartments, setApartments] = useState([]); // Tallennetaan haetut asunnot tilaan
-  const { accessToken, userId } = useAuth(); // Haetaan kirjautuneen käyttäjän tiedot
+  // Tilamuuttuja asunnoille
+  const [apartments, setApartments] = useState([]);
+  // Haetaan käyttäjän tunnistetiedot AuthContextista
+  const { accessToken, userId } = useAuth();
 
-  // Kun käyttäjä tai accessToken vaihtuu (tai näkymä aukeaa), haetaan asunnot
-  useEffect(() => {
-    if (userId && accessToken) {
-      getApartments();
-    }
-  }, [userId, accessToken]);
+  // Käytetään useFocusEffect hookia, jotta haetaan asunnot aina kun
+  // näkymä tulee näkyville (esim. palataan tästä näkymästä)
+  useFocusEffect(
+    useCallback(() => {
+      // Haetaan asunnot vain jos userId ja token ovat saatavilla
+      if (userId && accessToken) {
+        getApartments();
+      }
+    }, [userId, accessToken])
+  );
 
-  // Funktio hakee käyttäjän hallinnoimat asunnot API:sta
+  // Funktio asuntolistan hakemiseen APIsta
   const getApartments = () => {
+    // Rakennetaan API:n URL käyttäjän id:llä
     const URL = `https://vuokraappi-api-gw-dev.azure-api.net/apartments/user/${userId}`;
 
+    // Tehdään fetch-kutsu
     fetch(URL, {
       headers: {
-        Authorization: `Bearer ${accessToken}`, // Lähetetään accessToken Authorization-headerissa
+        Authorization: `Bearer ${accessToken}`, // Token headerissa autentikointiin
       },
     })
       .then((res) => {
         if (!res.ok) {
+          // Jos palvelin vastaa virheellä, heitetään virhe
           throw new Error(`HTTP error! status: ${res.status}`);
         }
+        // Muutoin parsitaan vastaus JSONiksi
         return res.json();
       })
       .then((data) => {
-        // API voi palauttaa listan joko suoraan tai objektin sisällä (data.apartments)
+        // API voi palauttaa asunnot joko suoraan listana
+        // tai objektissa data.apartments
         setApartments(data.apartments || data);
       })
       .catch((error) => {
-        console.error("Failed to fetch apartments:", error); // Virheen lokitus
+        // Virheen sattuessa tulostetaan konsoliin
+        console.error("Failed to fetch apartments:", error);
       });
   };
 
   return (
+    // KeyboardAvoidingView estää näppäimistön peittämästä sisältöä
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -55,13 +69,14 @@ export default function Apartments({ navigation }) {
     >
       <View style={styles.container}>
         <FlatList
-          data={apartments} // Lista näytettävistä asunnoista
+          data={apartments} // Näytettävä data
           keyExtractor={(item, index) =>
+            // Käytetään asunnon id:tä avaimena, jos ei ole niin indeksiä
             item.id ? item.id.toString() : index.toString()
           }
           contentContainerStyle={{ paddingBottom: 150 }}
-          // Listaotsikko yläreunaan
           ListHeaderComponent={
+            // Tyylikäs yläosa liukuväreillä ja otsikolla
             <LinearGradient
               colors={["#42a1f5", "#03bafc", "#42c5f5"]}
               start={{ x: 0, y: 0 }}
@@ -71,8 +86,8 @@ export default function Apartments({ navigation }) {
               <Text style={styles.headerText}>Hallinnassa olevat asuntosi</Text>
             </LinearGradient>
           }
-          // Renderöidään yksittäinen asunto rivinä – koko rivi toimii napin tavoin
           renderItem={({ item }) => (
+            // Asunnot ovat klikattavia, navigoi ApartmentDetails-näkymään
             <TouchableOpacity
               style={styles.item}
               onPress={() =>
@@ -80,11 +95,12 @@ export default function Apartments({ navigation }) {
               }
             >
               <Text style={styles.itemText}>
+                {/* Näytetään osoite, nimi tai id, jos osoitetta ei ole */}
                 {item.address || item.name || item.id || "Tuntematon asunto"}
               </Text>
             </TouchableOpacity>
           )}
-          // Näytetään, jos käyttäjällä ei ole asuntoja
+          // Jos asuntoja ei ole, näytetään käyttäjälle viesti
           ListEmptyComponent={() => (
             <Text style={styles.emptyText}>Ei asuntoja näytettäväksi</Text>
           )}
@@ -102,9 +118,11 @@ export default function Apartments({ navigation }) {
   );
 }
 
-// Tyylit
+// Tyylit erikseen StyleSheetillä
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+  },
   header: {
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,

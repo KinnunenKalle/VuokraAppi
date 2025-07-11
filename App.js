@@ -11,6 +11,7 @@ import Apartments from "./components/Apartments.js";
 import DrawerNavigator from "./components/DrawerNavigator.js";
 import AddApartment from "./components/AddApartment.js";
 import ApartmentDetails from "./components/ApartmentDetails.js";
+import EditApartment from "./components/EditAparments.js";
 
 import { AuthProvider } from "./components/AuthContext"; // ✅ tuo AuthProvider
 
@@ -26,6 +27,7 @@ export default function App() {
           <Stack.Screen name="Apartments" component={Apartments} />
           <Stack.Screen name="AddApartment" component={AddApartment} />
           <Stack.Screen name="ApartmentDetails" component={ApartmentDetails} />
+          <Stack.Screen name="EditApartment" component={EditApartment} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

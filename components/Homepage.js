@@ -2,87 +2,113 @@ import {
   View,
   Text,
   Dimensions,
-  TextInput,
-  TouchableOpacity,
+  Pressable,
   KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
+  Platform,
 } from "react-native";
 import React from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import Input from "./Input.js";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Homepage({ navigation }) {
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, flexDirection: "column", justifyContent: "center" }}
-      behavior="padding"
+      style={styles.keyboardContainer}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       enabled
       keyboardVerticalOffset={100}
     >
-      <ScrollView>
-        <View>
-          <LinearGradient
-            colors={["#42a1f5", "#03bafc", "#42c5f5"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{
-              borderBottomLeftRadius: 15,
-              borderBottomRightRadius: 15,
-              height: Dimensions.get("window").height * 0.2,
-              width: "100%",
-              alignItems: "center",
-              paddingTop: 45,
-            }}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Yläpalkki gradientilla */}
+        <LinearGradient
+          colors={["#42a1f5", "#03bafc"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <Text style={styles.headerText}>Vuokranantajan näkymä</Text>
+        </LinearGradient>
+
+        {/* Korttipainike — selkeästi erillään otsikosta */}
+        <View style={styles.cardContainer}>
+          <Pressable
+            onPress={() => navigation.navigate("Apartments")}
+            style={({ pressed }) => [
+              styles.card,
+              pressed && styles.cardPressed,
+            ]}
           >
-            <Text style={{ color: "white", fontSize: 22, fontWight: "bold" }}>
-              Vuokranantajan näkymä
-            </Text>
-          </LinearGradient>
-          <View
-            style={{
-              elevation: 10,
-              backgroundColor: "white",
-              borderRadius: 10,
-              margin: 10,
-              marginTop: -20,
-              paddingVertical: 20,
-              paddingHorizontal: 15,
-            }}
-          >
-            <TouchableOpacity onPress={() => navigation.navigate("Apartments")}>
-              <Text
-                style={{
-                  fontSize: 17,
-                  fontWeight: "bold",
-                  color: "#03bafc",
-                  textAlign: "center",
-                }}
-              >
-                Asunnot
-              </Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.cardContent}>
+              <Ionicons name="home-outline" size={22} color="#03bafc" />
+              <Text style={styles.cardText}>Asunnot</Text>
+            </View>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+// 💅 Tyylit
 const styles = StyleSheet.create({
-  fab: {
-    position: "absolute",
-    bottom: 25,
-    right: 20,
-    backgroundColor: "#03bafc",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    elevation: 5,
+  keyboardContainer: {
+    flex: 1,
+    backgroundColor: "#f6f9fc",
   },
-  fabText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
+  scrollContainer: {
+    flexGrow: 1,
+  },
+  header: {
+    height: Dimensions.get("window").height * 0.12, // pienempi header
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  headerText: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  cardContainer: {
+    marginTop: 30,
+    paddingHorizontal: 20,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  cardPressed: {
+    opacity: 0.95,
+    transform: [{ scale: 0.98 }],
+  },
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  cardText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#03bafc",
   },
 });

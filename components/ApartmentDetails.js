@@ -1,92 +1,108 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "./AuthContext";
 
 export default function ApartmentDetails({ route, navigation }) {
+  // Reitiltä saadaan asunnon perusdata (id ym.)
   const { apartment } = route.params;
-  const { accessToken, userId } = useAuth();
 
-  // Poisto-funktio (esim. API-kutsu, kun toteutat)
-  const handleDelete = () => {
-    Alert.alert("Poista asunto", "Haluatko varmasti poistaa tämän asunnon?", [
-      { text: "Peruuta", style: "cancel" },
-      {
-        text: "Poista",
-        style: "destructive",
-        onPress: () => {
-          // TODO: Toteuta API-kutsu, jossa käytetään accessTokenia
-          // Poiston jälkeen navigoi esim. takaisin asuntojen listaan
-          console.log("Poista asunto: ", apartment.id);
-          navigation.goBack();
-        },
-      },
-    ]);
-  };
+  // AuthContextista accessToken
+  const { accessToken } = useAuth();
 
-  // Muokkaus-funktio (navigoi esim. muokkausnäkymään)
-  const handleEdit = () => {
-    // TODO: Navigoi muokkausnäkymään ja välitä apartment-objekti
-    navigation.navigate("EditApartment", { apartment });
-  };
+  // Tilat päivittyvälle osoitteelle ja vuokralle
+  const [address, setAddress] = useState(apartment.address);
+  const [rent, setRent] = useState(apartment.rent);
+
+  // useFocusEffect hakee uusimmat tiedot palvelimelta aina kun näkymä tulee aktiiviseksi
+  useFocusEffect(
+    useCallback(() => {
+      const fetchApartmentDetails = async () => {
+        try {
+          const res = await fetch(
+            `https://vuokraappi-api-gw-dev.azure-api.net/apartments/${apartment.id}`,
+            {
+              method: "GET",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+              },
+            }
+          );
+
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+
+          const data = await res.json();
+          setAddress(data.address);
+          setRent(data.rent);
+        } catch (error) {
+          console.error("Virhe haettaessa asunnon tietoja:", error.message);
+          Alert.alert("Virhe", "Asunnon tietojen haku epäonnistui.");
+        }
+      };
+
+      fetchApartmentDetails();
+    }, [apartment.id, accessToken])
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Osoite:</Text>
-      <Text style={styles.value}>{apartment.address || "Ei osoitetta"}</Text>
+      <Text style={styles.label}>Osoite</Text>
+      <Text style={styles.value}>{address}</Text>
 
-      <Text style={styles.label}>Vuokra:</Text>
-      <Text style={styles.value}>
-        {apartment.rent !== undefined ? `${apartment.rent} €/kk` : "Ei vuokraa"}
-      </Text>
+      <Text style={styles.label}>Vuokra (€ / kk)</Text>
+      <Text style={styles.value}>{rent} €</Text>
 
-      <View style={styles.buttonsContainer}>
-        <TouchableOpacity style={styles.buttonEdit} onPress={handleEdit}>
-          <Text style={styles.buttonText}>Muokkaa</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.buttonDelete} onPress={handleDelete}>
-          <Text style={styles.buttonText}>Poista</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Painike siirtymään muokkausnäkymään */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() =>
+          navigation.navigate("EditApartment", { apartment: apartment })
+        }
+      >
+        <Text style={styles.buttonText}>Muokkaa asuntoa</Text>
+      </TouchableOpacity>
+      {/* Painike takaisin asuntolistaan */}
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: "#ccc", marginTop: 15 }]}
+        onPress={() => navigation.navigate("Apartments")}
+      >
+        <Text style={[styles.buttonText, { color: "#333" }]}>
+          Takaisin asuntolistaan
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
+// Tyylit
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
     flex: 1,
     backgroundColor: "white",
+    padding: 20,
+    paddingTop: 40,
   },
   label: {
-    fontWeight: "bold",
     fontSize: 18,
-    marginTop: 15,
+    fontWeight: "bold",
+    marginBottom: 6,
   },
   value: {
     fontSize: 16,
-    marginTop: 5,
+    marginBottom: 20,
   },
-  buttonsContainer: {
-    flexDirection: "row",
-    marginTop: 40,
-    justifyContent: "space-around",
-  },
-  buttonEdit: {
+  button: {
+    marginTop: 30,
     backgroundColor: "#03bafc",
-    paddingVertical: 12,
-    paddingHorizontal: 30,
+    paddingVertical: 15,
     borderRadius: 8,
-  },
-  buttonDelete: {
-    backgroundColor: "#f44336",
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 8,
+    alignItems: "center",
   },
   buttonText: {
     color: "white",
+    fontSize: 18,
     fontWeight: "bold",
-    fontSize: 16,
   },
 });
