@@ -1,11 +1,4 @@
-import {
-  View,
-  Text,
-  Dimensions,
-  TouchableOpacity,
-  Alert,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import React, { useEffect } from "react";
 import * as WebBrowser from "expo-web-browser";
 import {
@@ -15,7 +8,7 @@ import {
 } from "expo-auth-session";
 import { useAuth } from "./AuthContext";
 import jwt_decode from "jwt-decode";
-import Logo from "./Logo"; // ✅ varmista oikea polku
+import Logo from "./Logo";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -35,7 +28,7 @@ export default function Login({ navigation }) {
       redirectUri,
       responseType: "code",
       scopes: [
-        "api://3f790413-a01c-4d36-9823-dbc0ed63bc67/openid",
+        "openid profile",
         "api://3f790413-a01c-4d36-9823-dbc0ed63bc67/offline",
       ],
     },
@@ -101,6 +94,17 @@ export default function Login({ navigation }) {
           <Text style={styles.buttonText}>Kirjaudu sisään selaimessa</Text>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.card}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("SelectRole")}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.buttonText, styles.registerText]}>
+            Rekisteröidy
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -135,7 +139,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 6,
+    marginVertical: 12,
   },
+
   buttonText: {
     color: "#3b82f6",
     fontSize: 16,
