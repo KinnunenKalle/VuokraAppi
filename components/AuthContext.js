@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState } from "react";
 
-// Luodaan konteksti
+// Luodaan uusi konteksti, jonka kautta jaetaan kirjautumistiedot
 const AuthContext = createContext();
 
-// Provider, joka tarjoaa arvot koko sovellukselle
+// AuthProvider tarjoaa kirjautumistiedot sovelluksen muille komponenteille
 export const AuthProvider = ({ children }) => {
-  const [accessToken, setAccessToken] = useState(null); // JWT-token
-  const [userId, setUserId] = useState(null); // Käyttäjän OID
-  const [selectedRole, setSelectedRole] = useState(null); // ✅ Roolivalinta (Landlord / Tenant)
+  const [accessToken, setAccessToken] = useState(null); // Käyttäjän access token
+  const [userId, setUserId] = useState(null); // Käyttäjän ID (oid tokenista)
+  const [selectedRole, setSelectedRole] = useState(null); // Valittu rooli rekisteröityessä
 
   return (
     <AuthContext.Provider
@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
         userId,
         setUserId,
         selectedRole,
-        setSelectedRole, // ✅ Tarjotaan myös setter roolille
+        setSelectedRole,
       }}
     >
       {children}
@@ -25,5 +25,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Hook käyttöön komponenttien sisällä
+// ✅ Hook helpompaan käyttöön muissa komponenteissa: esim. const { userId } = useAuth();
 export const useAuth = () => useContext(AuthContext);
