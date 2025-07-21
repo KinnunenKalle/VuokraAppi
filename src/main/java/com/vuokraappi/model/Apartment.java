@@ -13,16 +13,37 @@ public class Apartment {
     @Id
     @GeneratedValue
     private UUID id;
-    private String address;
+
+    @Column(name = "street_address")
+    private String streetAddress;
+
+    @Column
+    private String zipcode;
+
+    @Column
+    private String city;
+
+    @Column
+    private String region;
+
+    @Column
+    private int size;
+
+
     private Double rent;
+
     @Column(name = "user_id")
     private UUID userId;
 
     public Apartment() {}
 
-    public Apartment(UUID id, String address, double rent) {
+    public Apartment(UUID id, String streetAddress, String zipcode, String city, String region, int size, double rent) {
         this.id = id;
-        this.address = address;
+        this.streetAddress = streetAddress;
+        this.zipcode = zipcode;
+        this.city = city;
+        this.region = region;
+        this.size = size;
         this.rent = rent;
     }
 
@@ -34,12 +55,12 @@ public class Apartment {
         this.id = id;
     }
 
-    public String getAddress() {
-        return address;
+    public String getStreetAddress() {
+        return streetAddress;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setStreetAddress(String streetAddress) {
+        this.streetAddress = streetAddress;
     }
 
     public Double getRent() {
@@ -56,6 +77,38 @@ public class Apartment {
 
     public void setuserId(UUID userId) {
         this.userId = userId;
+    }
+
+     public String getZipcode() {
+        return zipcode;
+    }
+
+    public void setZipcode(String zipcode) {
+        this.zipcode = zipcode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public void setRegion(String region) {
+        this.region = region;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    public void setSize(int size) {
+        this.size = size;
     }
 }
 

@@ -82,8 +82,8 @@ public class ApartmentController {
         if (apartmentUpdates.getRent() != null) {
             existingApartment.setRent(apartmentUpdates.getRent());
         }
-        if (apartmentUpdates.getAddress() != null) {
-            existingApartment.setAddress(apartmentUpdates.getAddress());
+        if (apartmentUpdates.getStreetAddress() != null) {
+            existingApartment.setStreetAddress(apartmentUpdates.getStreetAddress());
         }
 
         Apartment updatedApartment = apartmentRepository.save(existingApartment);
