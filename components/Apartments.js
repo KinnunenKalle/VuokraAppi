@@ -9,9 +9,9 @@ import {
   Platform,
   Dimensions,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useAuth } from "./AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
+import { Feather } from "@expo/vector-icons";
 
 export default function Apartments({ navigation }) {
   const [apartments, setApartments] = useState([]);
@@ -40,9 +40,6 @@ export default function Apartments({ navigation }) {
         return res.json();
       })
       .then((data) => {
-        console.log("Haettu asunto-data:", data); // Lisätty konsoliloki datasta
-        // Jos data on lista, käytetään sitä suoraan
-        // Jos data sisältää asuntojen listan jossain kentässä, esim. data.apartments, käytä sitä
         setApartments(Array.isArray(data) ? data : data.apartments || []);
       })
       .catch((error) => {
@@ -52,7 +49,7 @@ export default function Apartments({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardContainer}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={100}
     >
@@ -64,28 +61,28 @@ export default function Apartments({ navigation }) {
           }
           contentContainerStyle={{ paddingBottom: 150 }}
           ListHeaderComponent={
-            <LinearGradient
-              colors={["#42a1f5", "#03bafc", "#42c5f5"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.header}
-            >
+            <View style={styles.header}>
               <Text style={styles.headerText}>Hallinnassa olevat asuntosi</Text>
-            </LinearGradient>
+            </View>
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.item}
+              style={styles.card}
               onPress={() =>
                 navigation.navigate("ApartmentDetails", { apartment: item })
               }
             >
-              <Text style={styles.itemText}>
-                {item.streetAddress}, {item.zipcode}
-              </Text>
-              <Text style={styles.itemSubtext}>
-                {item.size} m² – {item.rent} €/kk
-              </Text>
+              <View style={styles.cardContent}>
+                <Feather name="home" size={20} color="#0f172a" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>
+                    {item.streetAddress}, {item.zipcode}
+                  </Text>
+                  <Text style={styles.cardSubtext}>
+                    {item.size} m² – {item.rent} €/kk
+                  </Text>
+                </View>
+              </View>
             </TouchableOpacity>
           )}
           ListEmptyComponent={() => (
@@ -105,59 +102,88 @@ export default function Apartments({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  keyboardContainer: {
+    flex: 1,
+    backgroundColor: "#f8fafc",
+  },
   container: {
     flex: 1,
   },
   header: {
+    backgroundColor: "#ffffff",
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
-    height: Dimensions.get("window").height * 0.2,
+    height: Dimensions.get("window").height * 0.18,
     width: "100%",
     alignItems: "center",
+    justifyContent: "center",
     paddingTop: 45,
+    borderBottomWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
   headerText: {
-    color: "white",
+    color: "#0f172a", // Sama kuin Homepage.js
     fontSize: 22,
     fontWeight: "bold",
   },
-  item: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-    marginHorizontal: 15,
+  card: {
+    backgroundColor: "#ffffff",
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 18,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 6,
   },
-  itemText: {
-    fontSize: 18,
-    textAlign: "center",
-    fontWeight: "500",
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
   },
-  itemSubtext: {
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1e293b",
+    letterSpacing: 0.4,
+  },
+  cardSubtext: {
     fontSize: 14,
-    textAlign: "center",
-    color: "#555",
+    color: "#475569",
     marginTop: 4,
   },
   emptyText: {
     marginTop: 50,
     textAlign: "center",
     fontSize: 16,
-    color: "#999",
+    color: "#94a3b8",
   },
   fab: {
     position: "absolute",
     bottom: 25,
     right: 20,
-    backgroundColor: "#03bafc",
+    backgroundColor: "#0ea5e9",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 30,
-    elevation: 5,
-    zIndex: 10,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
   },
   fabText: {
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
+    letterSpacing: 0.4,
   },
 });

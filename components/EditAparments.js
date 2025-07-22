@@ -50,16 +50,14 @@ export default function EditApartment({ route, navigation }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            streetAddress: address.trim(), // oikea kenttä API:lle
+            streetAddress: address.trim(),
             zipcode: zipcode.trim(),
             rent: rentNumber,
           }),
         }
       );
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       Alert.alert("Asunto päivitetty onnistuneesti");
       navigation.goBack();
@@ -89,9 +87,7 @@ export default function EditApartment({ route, navigation }) {
               }
             );
 
-            if (!res.ok) {
-              throw new Error(`HTTP error! status: ${res.status}`);
-            }
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
             Alert.alert("Asunto poistettu onnistuneesti");
             navigation.navigate("Apartments");
@@ -107,47 +103,43 @@ export default function EditApartment({ route, navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardContainer}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={100}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Osoite */}
         <Text style={styles.label}>Osoite</Text>
         <TextInput
           style={styles.input}
           value={address}
           onChangeText={setAddress}
-          placeholder="Osoite"
+          placeholder="Esim. Koivukujantie 5"
           autoCapitalize="words"
           editable={!loading}
         />
 
-        {/* Postinumero */}
         <Text style={styles.label}>Postinumero</Text>
         <TextInput
           style={styles.input}
           value={zipcode}
           onChangeText={setZipcode}
-          placeholder="Postinumero"
+          placeholder="Esim. 00100"
           keyboardType="numeric"
           editable={!loading}
         />
 
-        {/* Vuokra */}
         <Text style={styles.label}>Vuokra (€ / kk)</Text>
         <TextInput
           style={styles.input}
           value={rent}
           onChangeText={setRent}
-          placeholder="Vuokra"
+          placeholder="Esim. 850"
           keyboardType="numeric"
           editable={!loading}
         />
 
-        {/* Tallenna-painike */}
         <TouchableOpacity
-          style={styles.button}
+          style={styles.buttonPrimary}
           onPress={handleSave}
           disabled={loading}
         >
@@ -156,9 +148,8 @@ export default function EditApartment({ route, navigation }) {
           </Text>
         </TouchableOpacity>
 
-        {/* Poista-painike */}
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#f44336", marginTop: 20 }]}
+          style={styles.buttonDelete}
           onPress={handleDelete}
           disabled={loading}
         >
@@ -170,35 +161,54 @@ export default function EditApartment({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  keyboardContainer: {
+    flex: 1,
+    backgroundColor: "#f8fafc",
+  },
   container: {
-    padding: 20,
+    padding: 24,
     paddingTop: 40,
-    backgroundColor: "white",
     flexGrow: 1,
   },
   label: {
-    fontWeight: "bold",
-    fontSize: 18,
-    marginBottom: 8,
+    fontWeight: "600",
+    fontSize: 16,
+    color: "#1e293b",
+    marginBottom: 6,
+    marginTop: 10,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
     marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  button: {
-    backgroundColor: "#03bafc",
-    paddingVertical: 15,
-    borderRadius: 8,
+  buttonPrimary: {
+    backgroundColor: "#0ea5e9",
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: "center",
+    marginTop: 10,
+    elevation: 4,
+  },
+  buttonDelete: {
+    backgroundColor: "#ef4444",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 20,
+    elevation: 4,
   },
   buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 18,
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

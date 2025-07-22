@@ -1,5 +1,12 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+} from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "./AuthContext";
 
@@ -48,18 +55,20 @@ export default function ApartmentDetails({ route, navigation }) {
   const fullAddress = `${streetAddress}, ${zipcode}`;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Osoite</Text>
-      <Text style={styles.value}>{fullAddress}</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.card}>
+        <Text style={styles.label}>Osoite</Text>
+        <Text style={styles.value}>{fullAddress}</Text>
 
-      <Text style={styles.label}>Koko</Text>
-      <Text style={styles.value}>{size} m²</Text>
+        <Text style={styles.label}>Koko</Text>
+        <Text style={styles.value}>{size} m²</Text>
 
-      <Text style={styles.label}>Vuokra</Text>
-      <Text style={styles.value}>{rent} € / kk</Text>
+        <Text style={styles.label}>Vuokra</Text>
+        <Text style={styles.value}>{rent} € / kk</Text>
+      </View>
 
       <TouchableOpacity
-        style={styles.button}
+        style={styles.buttonPrimary}
         onPress={() =>
           navigation.navigate("EditApartment", { apartment: apartment })
         }
@@ -68,52 +77,86 @@ export default function ApartmentDetails({ route, navigation }) {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: "#ccc", marginTop: 15 }]}
+        style={styles.buttonSecondary}
         onPress={() => navigation.navigate("Apartments")}
       >
-        <Text style={[styles.buttonText, { color: "#333" }]}>
-          Takaisin asuntolistaan
-        </Text>
+        <Text style={styles.buttonSecondaryText}>Takaisin asuntolistaan</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: "#4CAF50", marginTop: 15 }]}
+        style={styles.buttonSuccess}
         onPress={() =>
           navigation.navigate("MapScreen", { address: fullAddress })
         }
       >
         <Text style={styles.buttonText}>Näytä kartalla</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#f8fafc",
+  },
+  content: {
+    padding: 24,
+    paddingBottom: 60,
+  },
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
     padding: 20,
-    paddingTop: 40,
+    marginBottom: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 6,
   },
   label: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 6,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1e293b",
+    marginBottom: 4,
   },
   value: {
-    fontSize: 16,
-    marginBottom: 20,
+    fontSize: 15,
+    color: "#475569",
+    marginBottom: 16,
   },
-  button: {
-    marginTop: 30,
-    backgroundColor: "#03bafc",
-    paddingVertical: 15,
-    borderRadius: 8,
+  buttonPrimary: {
+    backgroundColor: "#0ea5e9",
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: "center",
+    marginBottom: 16,
+    elevation: 4,
+  },
+  buttonSuccess: {
+    backgroundColor: "#10b981",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+    elevation: 4,
+  },
+  buttonSecondary: {
+    backgroundColor: "#e2e8f0",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginBottom: 8,
   },
   buttonText: {
     color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  buttonSecondaryText: {
+    color: "#1e293b",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

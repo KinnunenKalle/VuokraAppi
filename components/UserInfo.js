@@ -6,15 +6,16 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Alert,
+  StyleSheet,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Input from "./Input";
 import jwt_decode from "jwt-decode";
-import { useAuth } from "./AuthContext"; // ✅ TUONTI
+import { useAuth } from "./AuthContext";
 
 export default function UserInfo({ navigation }) {
-  const { accessToken } = useAuth(); // ✅ KÄYTTÖ
+  const { accessToken } = useAuth();
 
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState({
@@ -29,7 +30,6 @@ export default function UserInfo({ navigation }) {
       try {
         const decoded = jwt_decode(accessToken);
         const oid = decoded.oid;
-
         if (!oid) throw new Error("OID puuttuu tokenista");
 
         const res = await fetch(
@@ -91,7 +91,7 @@ export default function UserInfo({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.container}
       behavior="padding"
       enabled
       keyboardVerticalOffset={100}
@@ -102,41 +102,13 @@ export default function UserInfo({ navigation }) {
             colors={["#42a1f5", "#03bafc", "#42c5f5"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={{
-              borderBottomLeftRadius: 15,
-              borderBottomRightRadius: 15,
-              height: Dimensions.get("window").height * 0.2,
-              width: "100%",
-              alignItems: "center",
-              paddingTop: 45,
-            }}
+            style={styles.header}
           >
-            <Text style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>
-              VUOKRA ÄPPI
-            </Text>
+            <Text style={styles.headerText}>VUOKRA ÄPPI</Text>
           </LinearGradient>
 
-          <View
-            style={{
-              elevation: 10,
-              backgroundColor: "white",
-              borderRadius: 10,
-              margin: 10,
-              marginTop: -20,
-              paddingVertical: 20,
-              paddingHorizontal: 15,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 17,
-                fontWeight: "bold",
-                color: "#03bafc",
-                textAlign: "center",
-              }}
-            >
-              Muokkaa tietojasi
-            </Text>
+          <View style={styles.formCard}>
+            <Text style={styles.title}>Muokkaa tietojasi</Text>
 
             <Input
               title="Etunimi"
@@ -167,18 +139,8 @@ export default function UserInfo({ navigation }) {
               onChangeText={(text) => handleChange("mobilePhone", text)}
             />
 
-            <TouchableOpacity onPress={updateUserData}>
-              <Text
-                style={{
-                  color: "#03bafc",
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  textAlign: "center",
-                  marginVertical: 15,
-                }}
-              >
-                Tallenna muutokset
-              </Text>
+            <TouchableOpacity onPress={updateUserData} style={styles.button}>
+              <Text style={styles.buttonText}>Tallenna muutokset</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -186,3 +148,50 @@ export default function UserInfo({ navigation }) {
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    height: Dimensions.get("window").height * 0.2,
+    width: "100%",
+    alignItems: "center",
+    paddingTop: 45,
+  },
+  headerText: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+  formCard: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    marginHorizontal: 12,
+    marginTop: -20,
+    elevation: 10,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#0ea5e9",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  button: {
+    backgroundColor: "#0ea5e9",
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginTop: 20,
+  },
+  buttonText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+});

@@ -8,13 +8,12 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  StyleSheet,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import Input from "./Input.js";
 import { useAuth } from "./AuthContext";
 
 export default function AddApartment({ navigation }) {
-  // Tarvittavat kentät Azure API:n mukaan
   const [streetaddress, setStreetAddress] = useState("");
   const [zipcode, setZipcode] = useState("");
   const [size, setSize] = useState("");
@@ -23,7 +22,6 @@ export default function AddApartment({ navigation }) {
   const { accessToken, userId } = useAuth();
 
   const handleAddApartment = () => {
-    // Tarkistetaan, että kaikki kentät on täytetty
     if (!streetaddress || !zipcode || !size || !rent) {
       Alert.alert("Täytä kaikki kentät!");
       return;
@@ -42,7 +40,6 @@ export default function AddApartment({ navigation }) {
       return;
     }
 
-    // Rakennetaan uusi asunto API:n vaatiman skeeman mukaan
     const newApartment = {
       streetAddress: streetaddress,
       city: "",
@@ -52,7 +49,6 @@ export default function AddApartment({ navigation }) {
       rent: rentNumber,
       userId,
     };
-    console.log("Lähetettävä asunto:", newApartment);
 
     fetch("https://vuokraappi-api-gw-dev.azure-api.net/apartments", {
       method: "POST",
@@ -78,91 +74,105 @@ export default function AddApartment({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardContainer}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={100}
     >
       <ScrollView>
-        <View>
-          {/* Otsikko */}
-          <LinearGradient
-            colors={["#42a1f5", "#03bafc", "#42c5f5"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{
-              borderBottomLeftRadius: 15,
-              borderBottomRightRadius: 15,
-              height: Dimensions.get("window").height * 0.2,
-              width: "100%",
-              alignItems: "center",
-              paddingTop: 45,
-            }}
-          >
-            <Text style={{ color: "white", fontSize: 22, fontWeight: "bold" }}>
-              Lisää asunto
-            </Text>
-          </LinearGradient>
+        <View style={styles.header}>
+          <Text style={styles.headerText}>Lisää asunto</Text>
+        </View>
 
-          {/* Lomakekentät */}
-          <View
-            style={{
-              elevation: 10,
-              backgroundColor: "white",
-              borderRadius: 10,
-              margin: 10,
-              marginTop: -20,
-              paddingVertical: 20,
-              paddingHorizontal: 15,
-            }}
-          >
-            <Input
-              title="Katuosoite"
-              placeholder="Esim. Koivurannantie 6"
-              value={streetaddress}
-              onChangeText={setStreetAddress}
-              keyboard="default"
-            />
-            <Input
-              title="Postinumero"
-              placeholder="Esim. 00550"
-              value={zipcode}
-              onChangeText={setZipcode}
-              keyboard="numeric"
-            />
-            <Input
-              title="Asunnon koko (m²)"
-              placeholder="Esim. 55"
-              value={size}
-              onChangeText={setSize}
-              keyboard="numeric"
-            />
-            <Input
-              title="Vuokra (€)"
-              placeholder="Esim. 750"
-              value={rent}
-              onChangeText={setRent}
-              keyboard="numeric"
-            />
+        <View style={styles.formContainer}>
+          <Input
+            title="Katuosoite"
+            placeholder="Esim. Koivurannantie 6"
+            value={streetaddress}
+            onChangeText={setStreetAddress}
+            keyboard="default"
+          />
+          <Input
+            title="Postinumero"
+            placeholder="Esim. 00550"
+            value={zipcode}
+            onChangeText={setZipcode}
+            keyboard="numeric"
+          />
+          <Input
+            title="Asunnon koko (m²)"
+            placeholder="Esim. 55"
+            value={size}
+            onChangeText={setSize}
+            keyboard="numeric"
+          />
+          <Input
+            title="Vuokra (€)"
+            placeholder="Esim. 750"
+            value={rent}
+            onChangeText={setRent}
+            keyboard="numeric"
+          />
 
-            <TouchableOpacity onPress={handleAddApartment}>
-              <Text
-                style={{
-                  backgroundColor: "#03bafc",
-                  color: "white",
-                  padding: 12,
-                  borderRadius: 8,
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  textAlign: "center",
-                  marginTop: 20,
-                }}
-              >
-                Tallenna asunto
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.button} onPress={handleAddApartment}>
+            <Text style={styles.buttonText}>Tallenna asunto</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  keyboardContainer: {
+    flex: 1,
+    backgroundColor: "#f8fafc",
+  },
+  header: {
+    backgroundColor: "#ffffff",
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+    height: Dimensions.get("window").height * 0.2,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 45,
+    borderBottomWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  headerText: {
+    color: "#0f172a",
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+  formContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    marginHorizontal: 16,
+    marginTop: -10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+  button: {
+    backgroundColor: "#0ea5e9",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 20,
+    elevation: 4,
+  },
+  buttonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});
