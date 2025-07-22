@@ -4,17 +4,14 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "./AuthContext";
 
 export default function ApartmentDetails({ route, navigation }) {
-  // Reitiltä saadaan asunnon perusdata (id ym.)
   const { apartment } = route.params;
-
-  // AuthContextista accessToken
   const { accessToken } = useAuth();
 
-  // Tilat päivittyvälle osoitteelle ja vuokralle
-  const [address, setAddress] = useState(apartment.address);
+  const [streetAddress, setStreetAddress] = useState(apartment.streetAddress);
+  const [zipcode, setZipcode] = useState(apartment.zipcode);
+  const [size, setSize] = useState(apartment.size);
   const [rent, setRent] = useState(apartment.rent);
 
-  // useFocusEffect hakee uusimmat tiedot palvelimelta aina kun näkymä tulee aktiiviseksi
   useFocusEffect(
     useCallback(() => {
       const fetchApartmentDetails = async () => {
@@ -34,7 +31,9 @@ export default function ApartmentDetails({ route, navigation }) {
           }
 
           const data = await res.json();
-          setAddress(data.address);
+          setStreetAddress(data.streetAddress);
+          setZipcode(data.zipcode);
+          setSize(data.size);
           setRent(data.rent);
         } catch (error) {
           console.error("Virhe haettaessa asunnon tietoja:", error.message);
@@ -46,15 +45,19 @@ export default function ApartmentDetails({ route, navigation }) {
     }, [apartment.id, accessToken])
   );
 
+  const fullAddress = `${streetAddress}, ${zipcode}`;
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Osoite</Text>
-      <Text style={styles.value}>{address}</Text>
+      <Text style={styles.value}>{fullAddress}</Text>
 
-      <Text style={styles.label}>Vuokra (€ / kk)</Text>
-      <Text style={styles.value}>{rent} €</Text>
+      <Text style={styles.label}>Koko</Text>
+      <Text style={styles.value}>{size} m²</Text>
 
-      {/* Painike siirtymään muokkausnäkymään */}
+      <Text style={styles.label}>Vuokra</Text>
+      <Text style={styles.value}>{rent} € / kk</Text>
+
       <TouchableOpacity
         style={styles.button}
         onPress={() =>
@@ -63,7 +66,7 @@ export default function ApartmentDetails({ route, navigation }) {
       >
         <Text style={styles.buttonText}>Muokkaa asuntoa</Text>
       </TouchableOpacity>
-      {/* Painike takaisin asuntolistaan */}
+
       <TouchableOpacity
         style={[styles.button, { backgroundColor: "#ccc", marginTop: 15 }]}
         onPress={() => navigation.navigate("Apartments")}
@@ -72,11 +75,19 @@ export default function ApartmentDetails({ route, navigation }) {
           Takaisin asuntolistaan
         </Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: "#4CAF50", marginTop: 15 }]}
+        onPress={() =>
+          navigation.navigate("MapScreen", { address: fullAddress })
+        }
+      >
+        <Text style={styles.buttonText}>Näytä kartalla</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
-// Tyylit
 const styles = StyleSheet.create({
   container: {
     flex: 1,

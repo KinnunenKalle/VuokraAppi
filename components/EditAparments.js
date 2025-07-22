@@ -10,26 +10,26 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import { useAuth } from "./AuthContext"; // Tuodaan AuthContext-token käyttöön
+import { useAuth } from "./AuthContext";
 
 export default function EditApartment({ route, navigation }) {
-  // Haetaan muokattava asunto reitin parametreista
   const { apartment } = route.params;
-
-  // AuthContextista accessToken API-kutsuja varten
   const { accessToken } = useAuth();
 
-  // Tilat osoitteelle ja vuokralle
-  const [address, setAddress] = useState(apartment.address || "");
+  const [address, setAddress] = useState(apartment.streetAddress || "");
+  const [zipcode, setZipcode] = useState(apartment.zipcode || "");
   const [rent, setRent] = useState(
     apartment.rent ? String(apartment.rent) : ""
   );
   const [loading, setLoading] = useState(false);
 
-  // Funktio, joka tallentaa muutokset APIin PATCH-pyynnöllä
   const handleSave = async () => {
     if (!address.trim()) {
       Alert.alert("Virhe", "Osoite ei voi olla tyhjä");
+      return;
+    }
+    if (!zipcode.trim()) {
+      Alert.alert("Virhe", "Postinumero ei voi olla tyhjä");
       return;
     }
 
@@ -40,9 +40,7 @@ export default function EditApartment({ route, navigation }) {
     }
 
     setLoading(true);
-
     try {
-      // Lähetetään PATCH-pyyntö APIin
       const res = await fetch(
         `https://vuokraappi-api-gw-dev.azure-api.net/apartments/${apartment.id}`,
         {
@@ -52,18 +50,17 @@ export default function EditApartment({ route, navigation }) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            address: address.trim(),
+            streetAddress: address.trim(), // oikea kenttä API:lle
+            zipcode: zipcode.trim(),
             rent: rentNumber,
           }),
         }
       );
 
-      // Tarkistetaan onnistuiko päivitys
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
 
-      // Ilmoitus ja paluu edelliselle näkymälle
       Alert.alert("Asunto päivitetty onnistuneesti");
       navigation.goBack();
     } catch (error) {
@@ -71,6 +68,41 @@ export default function EditApartment({ route, navigation }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = async () => {
+    Alert.alert("Vahvista poisto", "Haluatko varmasti poistaa tämän asunnon?", [
+      { text: "Peruuta", style: "cancel" },
+      {
+        text: "Poista",
+        style: "destructive",
+        onPress: async () => {
+          setLoading(true);
+          try {
+            const res = await fetch(
+              `https://vuokraappi-api-gw-dev.azure-api.net/apartments/${apartment.id}`,
+              {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+              }
+            );
+
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
+            Alert.alert("Asunto poistettu onnistuneesti");
+            navigation.navigate("Apartments");
+          } catch (error) {
+            Alert.alert("Virhe poistossa", error.message);
+          } finally {
+            setLoading(false);
+          }
+        },
+      },
+    ]);
   };
 
   return (
@@ -88,6 +120,17 @@ export default function EditApartment({ route, navigation }) {
           onChangeText={setAddress}
           placeholder="Osoite"
           autoCapitalize="words"
+          editable={!loading}
+        />
+
+        {/* Postinumero */}
+        <Text style={styles.label}>Postinumero</Text>
+        <TextInput
+          style={styles.input}
+          value={zipcode}
+          onChangeText={setZipcode}
+          placeholder="Postinumero"
+          keyboardType="numeric"
           editable={!loading}
         />
 
@@ -111,6 +154,15 @@ export default function EditApartment({ route, navigation }) {
           <Text style={styles.buttonText}>
             {loading ? "Tallennetaan..." : "Tallenna"}
           </Text>
+        </TouchableOpacity>
+
+        {/* Poista-painike */}
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: "#f44336", marginTop: 20 }]}
+          onPress={handleDelete}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>Poista asunto</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

@@ -10,52 +10,69 @@ import {
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Input from "./Input.js"; // Oma komponentti kentille
-import { useAuth } from "./AuthContext"; // Haetaan accessToken ja userId kontekstista
+import Input from "./Input.js";
+import { useAuth } from "./AuthContext";
 
 export default function AddApartment({ navigation }) {
-  // Tilat osoitteelle ja vuokralle
-  const [address, setAddress] = useState("");
+  // Tarvittavat kentät Azure API:n mukaan
+  const [streetaddress, setStreetAddress] = useState("");
+  const [zipcode, setZipcode] = useState("");
+  const [size, setSize] = useState("");
   const [rent, setRent] = useState("");
 
-  // AuthContextista haetaan kirjautuneen käyttäjän tiedot
   const { accessToken, userId } = useAuth();
 
-  // Lähetetään asunto API:in
   const handleAddApartment = () => {
     // Tarkistetaan, että kaikki kentät on täytetty
-    if (!address || !rent) {
+    if (!streetaddress || !zipcode || !size || !rent) {
       Alert.alert("Täytä kaikki kentät!");
       return;
     }
 
-    // Rakennetaan asunto-objekti JSON-muodossa
+    const sizeNumber = Number(size);
+    const rentNumber = Number(rent);
+
+    if (
+      isNaN(sizeNumber) ||
+      sizeNumber <= 0 ||
+      isNaN(rentNumber) ||
+      rentNumber <= 0
+    ) {
+      Alert.alert("Anna kelvolliset numerot vuokralle ja koolle.");
+      return;
+    }
+
+    // Rakennetaan uusi asunto API:n vaatiman skeeman mukaan
     const newApartment = {
-      address,
-      rent: Number(rent), // varmistetaan että rent on numero
+      streetAddress: streetaddress,
+      city: "",
+      region: "",
+      zipcode,
+      size: sizeNumber,
+      rent: rentNumber,
       userId,
     };
+    console.log("Lähetettävä asunto:", newApartment);
 
-    // Lähetetään POST-pyyntö API:in
     fetch("https://vuokraappi-api-gw-dev.azure-api.net/apartments", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`, // Tunnistaudutaan tokenilla
+        Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify(newApartment), // Muunnetaan objekti JSONiksi
+      body: JSON.stringify(newApartment),
     })
       .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`); // Heitetään virhe jos ei 2xx vastaus
-        return res.json(); // Parsitaan vastaus
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
       })
-      .then((data) => {
-        Alert.alert("Asunto lisätty!"); // Ilmoitetaan onnistumisesta
-        navigation.navigate("Apartments"); // Palataan listaan (päivitetään automaattisesti)
+      .then(() => {
+        Alert.alert("Asunto lisätty!");
+        navigation.navigate("Apartments");
       })
       .catch((err) => {
-        console.error("Virhe lisätessä asuntoa:", err); // Debug-tuloste
-        Alert.alert("Virhe", "Asunnon lisääminen epäonnistui."); // Näytetään virheilmoitus
+        console.error("Virhe lisätessä asuntoa:", err);
+        Alert.alert("Virhe", "Asunnon lisääminen epäonnistui.");
       });
   };
 
@@ -67,7 +84,7 @@ export default function AddApartment({ navigation }) {
     >
       <ScrollView>
         <View>
-          {/* Yläosan gradient-tunniste/otsikko */}
+          {/* Otsikko */}
           <LinearGradient
             colors={["#42a1f5", "#03bafc", "#42c5f5"]}
             start={{ x: 0, y: 0 }}
@@ -86,27 +103,39 @@ export default function AddApartment({ navigation }) {
             </Text>
           </LinearGradient>
 
+          {/* Lomakekentät */}
           <View
             style={{
               elevation: 10,
               backgroundColor: "white",
               borderRadius: 10,
               margin: 10,
-              marginTop: -20, // nostetaan vähän ylöspäin
+              marginTop: -20,
               paddingVertical: 20,
               paddingHorizontal: 15,
             }}
           >
-            {/* Osoite-kenttä */}
             <Input
-              title="Osoite"
+              title="Katuosoite"
               placeholder="Esim. Koivurannantie 6"
-              value={address}
-              onChangeText={setAddress}
+              value={streetaddress}
+              onChangeText={setStreetAddress}
               keyboard="default"
             />
-
-            {/* Vuokra-kenttä */}
+            <Input
+              title="Postinumero"
+              placeholder="Esim. 00550"
+              value={zipcode}
+              onChangeText={setZipcode}
+              keyboard="numeric"
+            />
+            <Input
+              title="Asunnon koko (m²)"
+              placeholder="Esim. 55"
+              value={size}
+              onChangeText={setSize}
+              keyboard="numeric"
+            />
             <Input
               title="Vuokra (€)"
               placeholder="Esim. 750"
@@ -115,7 +144,6 @@ export default function AddApartment({ navigation }) {
               keyboard="numeric"
             />
 
-            {/* Lähetä-painike */}
             <TouchableOpacity onPress={handleAddApartment}>
               <Text
                 style={{

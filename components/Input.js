@@ -4,14 +4,17 @@ import React from "react";
 const Input = ({
   title,
   placeholder,
-  keyboard,
-  is_password,
+  keyboard = "default", // oletuskenttä keyboard-tyypille
+  is_password = false, // oletus false, jos salasana-kenttä ei ole
   value,
   onChangeText,
 }) => {
   return (
     <View style={{ marginVertical: 10 }}>
+      {/* Kentän otsikko */}
       <Text style={{ fontSize: 16, color: "#03bafc" }}>{title}</Text>
+
+      {/* Tekstikenttä */}
       <TextInput
         placeholder={placeholder}
         placeholderTextColor="gray"

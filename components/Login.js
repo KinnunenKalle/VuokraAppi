@@ -90,15 +90,6 @@ export default function Login({ navigation }) {
           const roleFromId =
             decodedId?.roles || decodedId?.role || decodedId["extension_role"];
 
-          // Tulostetaan purkamisen tulokset konsoliin debuggausta varten
-          console.log("Decoded Access Token:", decodedAccess);
-          console.log("Decoded ID Token:", decodedId);
-          console.log(
-            "Rooli access tokenista:",
-            roleFromAccess || "Ei löytynyt"
-          );
-          console.log("Rooli ID-tokenista:", roleFromId || "Ei löytynyt");
-
           // Jos käyttäjä-ID puuttuu, näytetään virhe
           if (!userId) {
             Alert.alert("Virhe", "Käyttäjä-ID puuttuu tokenista.");

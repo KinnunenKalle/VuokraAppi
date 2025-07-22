@@ -15,6 +15,7 @@ import ApartmentDetails from "./components/ApartmentDetails.js";
 import EditApartment from "./components/EditAparments.js";
 import SelectRoleScreen from "./components/SelectRoleScreen.js"; // ✅ Uusi rekisteröintivaiheen roolivalintasivu
 import RegisterScreen from "./components/RegisterScreen.js";
+import MapScreen from "./components/MapScreen.js";
 // AuthContext-provideri tokenin ja käyttäjän hallintaan
 import { AuthProvider } from "./components/AuthContext";
 
@@ -40,6 +41,7 @@ export default function App() {
           <Stack.Screen name="AddApartment" component={AddApartment} />
           <Stack.Screen name="ApartmentDetails" component={ApartmentDetails} />
           <Stack.Screen name="EditApartment" component={EditApartment} />
+          <Stack.Screen name="MapScreen" component={MapScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
