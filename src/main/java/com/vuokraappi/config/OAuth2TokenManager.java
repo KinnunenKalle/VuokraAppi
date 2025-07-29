@@ -1,31 +1,26 @@
 package com.vuokraappi.config;
 
-import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
-import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.*;
+import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 @Component
 public class OAuth2TokenManager {
 
-    private final OAuth2AuthorizedClientManager authorizedClientManager;
+    private final ReactiveOAuth2AuthorizedClientManager authorizedClientManager;
 
-    public OAuth2TokenManager(ClientRegistrationRepository clientRegistrationRepository,
-                              OAuth2AuthorizedClientService authorizedClientService) {
+    public OAuth2TokenManager(ReactiveClientRegistrationRepository clientRegistrationRepository,
+                              ReactiveOAuth2AuthorizedClientService authorizedClientService) {
 
-        OAuth2AuthorizedClientProvider authorizedClientProvider =
-                OAuth2AuthorizedClientProviderBuilder.builder()
+        ReactiveOAuth2AuthorizedClientProvider authorizedClientProvider =
+                ReactiveOAuth2AuthorizedClientProviderBuilder.builder()
                         .clientCredentials()
                         .build();
 
-        AuthorizedClientServiceOAuth2AuthorizedClientManager manager =
-                new AuthorizedClientServiceOAuth2AuthorizedClientManager(
+        AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager manager =
+                new AuthorizedClientServiceReactiveOAuth2AuthorizedClientManager(
                         clientRegistrationRepository, authorizedClientService);
 
         manager.setAuthorizedClientProvider(authorizedClientProvider);
@@ -34,22 +29,11 @@ public class OAuth2TokenManager {
 
     public Mono<String> getAccessToken() {
         OAuth2AuthorizeRequest authorizeRequest = OAuth2AuthorizeRequest
-                .withClientRegistrationId("graph")  // Tämä viittaa application.properties:ssa määriteltyyn clientiin
-                .principal("graph-client")          // client_credentials flow: ei oikeaa käyttäjää
+                .withClientRegistrationId("graph")
+                .principal("graph-client")
                 .build();
 
-        // Käytetään reaktiivista authorization manageria
-        return Mono.fromCallable(() -> {
-            OAuth2AuthorizedClient authorizedClient =
-                    authorizedClientManager.authorize(authorizeRequest);
-
-            if (authorizedClient == null) {
-                throw new IllegalStateException("Could not authorize client");
-            }
-
-            return authorizedClient.getAccessToken().getTokenValue();
-        });
+        return authorizedClientManager.authorize(authorizeRequest)
+                .map(client -> client.getAccessToken().getTokenValue());
     }
-
 }
-
