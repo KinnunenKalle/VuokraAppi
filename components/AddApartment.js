@@ -14,14 +14,18 @@ import Input from "./Input.js";
 import { useAuth } from "./AuthContext";
 
 export default function AddApartment({ navigation }) {
+  // Käyttäjän syöttämät kentät
   const [streetaddress, setStreetAddress] = useState("");
   const [zipcode, setZipcode] = useState("");
   const [size, setSize] = useState("");
   const [rent, setRent] = useState("");
 
+  // Haetaan käyttäjän token ja ID kontekstista
   const { accessToken, userId } = useAuth();
 
-  const handleAddApartment = () => {
+  // Napin painallus: validoi kentät, hae koordinaatit ja lähetä asunto
+  const handleAddApartment = async () => {
+    // 1. Kenttävalidointi
     if (!streetaddress || !zipcode || !size || !rent) {
       Alert.alert("Täytä kaikki kentät!");
       return;
@@ -40,36 +44,59 @@ export default function AddApartment({ navigation }) {
       return;
     }
 
-    const newApartment = {
-      streetAddress: streetaddress,
-      city: "",
-      region: "",
-      zipcode,
-      size: sizeNumber,
-      rent: rentNumber,
-      userId,
-    };
+    // 2. Haetaan koordinaatit Nominatim-palvelusta
+    const fullAddress = `${streetaddress}, ${zipcode}`;
 
-    fetch("https://vuokraappi-api-gw-dev.azure-api.net/apartments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(newApartment),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then(() => {
-        Alert.alert("Asunto lisätty!");
-        navigation.navigate("Apartments");
-      })
-      .catch((err) => {
-        console.error("Virhe lisätessä asuntoa:", err);
-        Alert.alert("Virhe", "Asunnon lisääminen epäonnistui.");
-      });
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          fullAddress
+        )}`
+      );
+
+      const data = await response.json();
+
+      if (data.length === 0) {
+        Alert.alert("Osoitetta ei löytynyt", "Tarkista osoite: " + fullAddress);
+        return;
+      }
+
+      const { lat, lon } = data[0];
+
+      // 3. Rakennetaan asunto-objekti
+      const newApartment = {
+        streetAddress: streetaddress,
+        city: "", // Valinnainen kenttä, ei käytössä
+        region: "", // Valinnainen kenttä, ei käytössä
+        zipcode,
+        size: sizeNumber,
+        rent: rentNumber,
+        userId,
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lon),
+      };
+
+      // 4. Lähetetään asunto API:in
+      const res = await fetch(
+        "https://vuokraappi-api-gw-dev.azure-api.net/apartments",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(newApartment),
+        }
+      );
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      Alert.alert("Asunto lisätty!");
+      navigation.navigate("Apartments");
+    } catch (err) {
+      console.error("Virhe lisätessä asuntoa:", err);
+      Alert.alert("Virhe", "Asunnon lisääminen epäonnistui.");
+    }
   };
 
   return (
@@ -79,10 +106,12 @@ export default function AddApartment({ navigation }) {
       keyboardVerticalOffset={100}
     >
       <ScrollView>
+        {/* Otsikko */}
         <View style={styles.header}>
           <Text style={styles.headerText}>Lisää asunto</Text>
         </View>
 
+        {/* Lomakekentät */}
         <View style={styles.formContainer}>
           <Input
             title="Katuosoite"
@@ -113,6 +142,7 @@ export default function AddApartment({ navigation }) {
             keyboard="numeric"
           />
 
+          {/* Lähetä-nappi */}
           <TouchableOpacity style={styles.button} onPress={handleAddApartment}>
             <Text style={styles.buttonText}>Tallenna asunto</Text>
           </TouchableOpacity>
@@ -122,6 +152,7 @@ export default function AddApartment({ navigation }) {
   );
 }
 
+// Tyylit
 const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
