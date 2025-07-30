@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   headerText: {
-    color: "#0f172a", // Sama kuin Homepage.js
+    color: "#0f172a",
     fontSize: 22,
     fontWeight: "bold",
   },

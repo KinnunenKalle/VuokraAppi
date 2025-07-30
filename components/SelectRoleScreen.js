@@ -5,13 +5,13 @@ import { useAuth } from "./AuthContext";
 export default function SelectRoleScreen({ navigation }) {
   const { setSelectedRole } = useAuth();
 
-  // ✅ Kun käyttäjä valitsee roolin, tallennetaan se contextiin (valinnainen)
+  //  Kun käyttäjä valitsee roolin, tallennetaan se contextiin (valinnainen)
   // ja välitetään se navigoinnin mukana rekisteröintinäkymään
   const handleRoleSelect = (role) => {
     console.log("Rooli valittu:", role);
     setSelectedRole(role); // Tallennetaan AuthContextiin, jos muualla tarvitaan
 
-    // ⏱ Varmuuden vuoksi pieni viive ennen navigaatiota (ei ole aina pakollinen)
+    //  Varmuuden vuoksi pieni viive ennen navigaatiota (ei ole aina pakollinen)
     setTimeout(() => {
       navigation.navigate("Register", { role }); // Navigoidaan ja välitetään rooli propseissa
     }, 0);

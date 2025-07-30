@@ -3,6 +3,7 @@ import { StyleSheet } from "react-native";
 import * as React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { GestureHandlerRootView } from "react-native-gesture-handler"; // 👈 Tämä lisätty
 
 // Näkymät
 import Login from "./components/Login.js";
@@ -13,9 +14,10 @@ import DrawerNavigator from "./components/DrawerNavigator.js";
 import AddApartment from "./components/AddApartment.js";
 import ApartmentDetails from "./components/ApartmentDetails.js";
 import EditApartment from "./components/EditAparments.js";
-import SelectRoleScreen from "./components/SelectRoleScreen.js"; // ✅ Uusi rekisteröintivaiheen roolivalintasivu
+import SelectRoleScreen from "./components/SelectRoleScreen.js";
 import RegisterScreen from "./components/RegisterScreen.js";
 import MapScreen from "./components/MapScreen.js";
+
 // AuthContext-provideri tokenin ja käyttäjän hallintaan
 import { AuthProvider } from "./components/AuthContext";
 
@@ -23,28 +25,34 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <AuthProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {/* Kirjautuminen */}
-          <Stack.Screen name="Login" component={Login} />
+    // 👇 GestureHandlerRootView pakollinen gesture-komponenttien toimintaan
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {/* Kirjautuminen */}
+            <Stack.Screen name="Login" component={Login} />
 
-          {/* Rekisteröinnin roolivalinta */}
-          <Stack.Screen name="SelectRole" component={SelectRoleScreen} />
-          <Stack.Screen name="Register" component={RegisterScreen} />
+            {/* Rekisteröinnin roolivalinta */}
+            <Stack.Screen name="SelectRole" component={SelectRoleScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
 
-          {/* Sovelluksen pääsisältö drawerin sisällä */}
-          <Stack.Screen name="MainApp" component={DrawerNavigator} />
+            {/* Sovelluksen pääsisältö drawerin sisällä */}
+            <Stack.Screen name="MainApp" component={DrawerNavigator} />
 
-          {/* Asuntoihin liittyvät näkymät */}
-          <Stack.Screen name="Apartments" component={Apartments} />
-          <Stack.Screen name="AddApartment" component={AddApartment} />
-          <Stack.Screen name="ApartmentDetails" component={ApartmentDetails} />
-          <Stack.Screen name="EditApartment" component={EditApartment} />
-          <Stack.Screen name="MapScreen" component={MapScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </AuthProvider>
+            {/* Asuntoihin liittyvät näkymät */}
+            <Stack.Screen name="Apartments" component={Apartments} />
+            <Stack.Screen name="AddApartment" component={AddApartment} />
+            <Stack.Screen
+              name="ApartmentDetails"
+              component={ApartmentDetails}
+            />
+            <Stack.Screen name="EditApartment" component={EditApartment} />
+            <Stack.Screen name="MapScreen" component={MapScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
 
