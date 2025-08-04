@@ -27,13 +27,13 @@ public class Apartment {
     private String region;
 
     @Column
-    private int size;
+    private Integer size;
 
     @Column
-    private double longitude;
+    private Double longitude;
 
     @Column
-    private double latitude;
+    private Double latitude;
 
 
     private Double rent;
@@ -43,7 +43,7 @@ public class Apartment {
 
     public Apartment() {}
 
-    public Apartment(UUID id, String streetAddress, String zipcode, String city, String region, int size, double rent, double longitude, double latitude) {
+    public Apartment(UUID id, String streetAddress, String zipcode, String city, String region, Integer size, Double rent, Double longitude, Double latitude) {
         this.id = id;
         this.streetAddress = streetAddress;
         this.zipcode = zipcode;
@@ -79,11 +79,11 @@ public class Apartment {
         this.rent = rent;
     }
 
-    public UUID getuserId() {
+    public UUID getUserId() {
         return userId;
     }
 
-    public void setuserId(UUID userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 
@@ -111,27 +111,27 @@ public class Apartment {
         this.region = region;
     }
 
-    public int getSize() {
+    public Integer getSize() {
         return size;
     }
 
-    public void setSize(int size) {
+    public void setSize(Integer size) {
         this.size = size;
     }
 
-    public double getLongitude() {
+    public Double getLongitude() {
         return longitude;
     }
 
-    public void setLongitude(double longitude) {
+    public void setLongitude(Double longitude) {
         this.longitude = longitude;
     }
 
-    public double getLatitude() {
+    public Double getLatitude() {
         return latitude;
     }
 
-    public void setLatitude(double latitude) {
+    public void setLatitude(Double latitude) {
         this.latitude = latitude;
     }
 }

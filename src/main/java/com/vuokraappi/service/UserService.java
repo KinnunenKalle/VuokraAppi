@@ -3,15 +3,18 @@ package com.vuokraappi.service;
 import com.vuokraappi.model.User;
 import com.vuokraappi.model.Tenant;
 import com.vuokraappi.model.Landlord;
+import com.vuokraappi.model.Apartment;
 import com.vuokraappi.repository.UserRepository;
 import com.vuokraappi.repository.TenantRepository;
 import com.vuokraappi.repository.LandlordRepository;
+import com.vuokraappi.repository.ApartmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -24,6 +27,9 @@ public class UserService {
 
     @Autowired
     private LandlordRepository landlordRepository;
+
+    @Autowired
+    private ApartmentRepository apartmentRepository;
 
     // CREATE
     @Transactional
@@ -100,6 +106,8 @@ public class UserService {
         // Poista roolispesifiset tiedot
         tenantRepository.findById(id).ifPresent(tenantRepository::delete);
         landlordRepository.findById(id).ifPresent(landlordRepository::delete);
+        List<Apartment> apartments = apartmentRepository.findByUserId(id);
+        apartmentRepository.deleteAll(apartments);
 
         userRepository.deleteById(id);
         return true;

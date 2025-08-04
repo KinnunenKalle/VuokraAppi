@@ -8,12 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RestController;
+
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vuokraappi.service.BlobStorageService;
+
 
 @RestController
 @RequestMapping("/apartments")
@@ -21,6 +23,9 @@ public class ApartmentController {
 
     @Autowired
     private ApartmentRepository apartmentRepository;
+
+    @Autowired
+    private BlobStorageService blobStorageService;
 
     @GetMapping("/{id}")
     public ResponseEntity<String> readById(@PathVariable String id) {
@@ -86,21 +91,37 @@ public class ApartmentController {
         return ResponseEntity.ok(updatedApartment);
     }
 
-
+    @GetMapping("/uploadPic")
+    public ResponseEntity<Map<String, String>> generateSas(@RequestParam String userId) {
+        try {
+            String sasUrl = blobStorageService.generateSasUrlForUser(userId);
+            return ResponseEntity.ok(Map.of("sasUrl", sasUrl));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "SAS-linkin luonti epäonnistui: " + e.getMessage()));
+        }
+    }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteApartment(@PathVariable String id) {
-        UUID uuid;
+        UUID apartmentId;
         try {
-            uuid = UUID.fromString(id);
+            apartmentId = UUID.fromString(id);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();  // Palautetaan 400 virhe, jos ID-muoto on huono
         }
 
-        if (!apartmentRepository.existsById(uuid)) {
+        Optional<Apartment> optionalApartment = apartmentRepository.findById(apartmentId);
+        if (optionalApartment.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        apartmentRepository.deleteById(uuid);
+
+        Apartment apartment = optionalApartment.get();
+        UUID userId = apartment.getUserId();
+        // Poista kuvat blob storage -kontista
+        blobStorageService.deleteApartmentBlobs(userId, apartment.getId());
+
+        apartmentRepository.deleteById(apartmentId);
         return ResponseEntity.noContent().build();
     }
 
