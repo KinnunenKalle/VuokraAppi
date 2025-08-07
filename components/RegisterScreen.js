@@ -16,37 +16,31 @@ import {
 import { useAuth } from "./AuthContext";
 import jwt_decode from "jwt-decode";
 
-// WebBrowser mahdollistaa OAuth-kirjautumisen selaimessa ja tämän avulla saadaan suljettua selainikkuna oikein.
+//  Varmistaa, että selainikkuna sulkeutuu oikein kirjautumisen jälkeen
 WebBrowser.maybeCompleteAuthSession();
 
-// OAuth-palvelimen päätepisteet, joita käytetään kirjautumiseen ja tokenin vaihtoon.
+//  OAuth 2.0 -palvelimen päätepisteet kirjautumiselle ja tokenien vaihdolle
 const discovery = {
   authorizationEndpoint:
     "https://vuokraappi.ciamlogin.com/95e94f96-fda6-4111-953a-439ab54fce6e/oauth2/v2.0/authorize",
+
   tokenEndpoint:
     "https://vuokraappi.ciamlogin.com/95e94f96-fda6-4111-953a-439ab54fce6e/oauth2/v2.0/token",
 };
 
-// Roolien appRoleId:t, joita API käyttää tunnistamaan käyttäjän roolin
-const roleIds = {
-  Landlord: "53fc7f95-4883-4883-af70-375270557682", // Vuokranantaja
-  Tenant: "1cf794e6-77a1-44c5-bc9e-e6b690713740", // Vuokralainen
-};
-
 export default function RegisterScreen({ navigation, route }) {
-  // Route-parametrina saadaan rekisteröitävän käyttäjän rooli, esim. "Landlord" tai "Tenant"
+  //  Rooli valitaan SelectRoleScreenissä ja välitetään route-parametrina
   const { role } = route.params || {};
 
-  // OAuth-redirect URI, jossa Expo proxy auttaa kehitysvaiheessa
+  //  Luo redirect-osoitteen, johon OAuth vastaa (käytetään Expo-proxya)
   const redirectUri = makeRedirectUri({ useProxy: true });
 
-  // Määritellään autentikointipyyntö käyttäen annettuja scopeja.
-  // Scopet määräävät, mitä oikeuksia pyydetään OAuth-palvelimelta.
+  //  Määritellään kirjautumispyyntö expo-auth-sessionin kautta
   const [request, response, promptAsync] = useAuthRequest(
     {
-      clientId: "ea427158-f1f3-47af-b515-8da8a2744379",
+      clientId: "ea427158-f1f3-47af-b515-8da8a2744379", // Azure CIAM client ID
       redirectUri,
-      responseType: "code", // Käytetään authorization code -virtausta (turvallinen tapa)
+      responseType: "code", // Käytetään Authorization Code -flow'ta
       scopes: [
         "openid",
         "profile",
@@ -56,52 +50,48 @@ export default function RegisterScreen({ navigation, route }) {
     discovery
   );
 
-  // Haetaan AuthContextin setterit tokenin ja käyttäjä-ID:n tallentamiseen sovelluksen tilaan
-  const { setAccessToken, setUserId } = useAuth();
+  //  Tallennetaan accessToken ja userId sovelluksen tilaan kontekstin kautta
+  const { setAccessToken, setUserId, setSelectedRole } = useAuth();
 
-  // Lataustilan hallinta (näytetään spinner kun odotetaan vastauksia)
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Lataustilan hallinta
 
-  // Efekti käynnistyy aina kun OAuth-vastaus (response) muuttuu
+  //  Tarkkaillaan OAuth-vastausta
   useEffect(() => {
-    // Jos OAuth onnistui ja rooli on valittu, jatketaan käsittelyä
     if (response?.type === "success" && role) {
+      // Jos kirjautuminen onnistui ja rooli on valittu, jatketaan
       handleAuth(response);
     } else if (response?.type === "error") {
       Alert.alert("Virhe", "Kirjautuminen epäonnistui.");
     }
   }, [response, role]);
 
-  // Funktio käsittelee OAuth-vastauksen: vaihtaa koodin tokeniksi, purkaa tokenin,
-  // tallentaa tokenin, ja asettaa roolin kutsumalla APIa.
+  //  Käsittelee OAuth-vastauksen: vaihtaa koodin tokeniksi, purkaa tiedot, ja kutsuu omaa APIa
   const handleAuth = async (response) => {
-    setLoading(true); // Aloitetaan lataustila
+    setLoading(true);
 
     try {
-      // Haetaan authorization code vastauksesta
-      const code = response.params.code;
+      const code = response.params.code; // Haetaan authorization code
 
-      // Vaihdetaan authorization code access- ja id-tokeneiksi tokenEndpointilla
+      //  Vaihdetaan koodi access- ja id-tokeniksi
       const tokenResult = await exchangeCodeAsync(
         {
           clientId: "ea427158-f1f3-47af-b515-8da8a2744379",
           redirectUri,
           code,
           extraParams: {
-            code_verifier: request.codeVerifier, // PKCE-varmistus turvaamaan vaihto
+            code_verifier: request.codeVerifier, // PKCE-suojaus
           },
         },
         discovery
       );
 
-      const accessToken = tokenResult.accessToken; // OAuth access token
-      const idToken = tokenResult.idToken; // OAuth ID token
+      const accessToken = tokenResult.accessToken;
+      const idToken = tokenResult.idToken;
 
-      // Puretaan tokenit JSON-muotoon, jotta voimme lukea käyttäjätiedot
+      //  Puretaan access- ja id-token JWT:stä
       const decodedAccess = jwt_decode(accessToken);
       const decodedId = jwt_decode(idToken);
-
-      // Etsitään käyttäjän Object ID tokenista (oid)
+      //  Haetaan käyttäjän OID (Azure AD:n käyttäjä-ID)
       const userId = decodedAccess?.oid || decodedId?.oid;
 
       if (!userId) {
@@ -109,67 +99,66 @@ export default function RegisterScreen({ navigation, route }) {
         setLoading(false);
         return;
       }
+      console.log("Lähetetään käyttäjän luontiin:", {
+        userId,
+        role,
+        accessToken,
+      });
+      if (!role) {
+        Alert.alert(
+          "Virhe",
+          "Rooli puuttuu – tarkista, että valitsit roolin ennen rekisteröitymistä."
+        );
+        setLoading(false);
+        return;
+      }
 
-      // Tallennetaan token ja userId sovelluksen tilaan AuthContextiin
+      //  Tallennetaan käyttäjätilat globaaliin AuthContextiin
       setAccessToken(accessToken);
       setUserId(userId);
+      setSelectedRole(role);
 
-      // Kutsutaan funktiota, joka asettaa käyttäjälle roolin kutsumalla APIa
-      await assignRoleToUser(userId, role, accessToken);
+      //  Luodaan käyttäjä backendin API:in ja asetetaan rooli
+      await createUser(userId, role, accessToken);
 
-      // Ilmoitetaan onnistumisesta ja navigoidaan pääsivulle (tyhjennetään historia)
-      Alert.alert("✅ Rekisteröityminen onnistui ja rooli asetettu!");
+      //  Ilmoitus ja navigointi pääsivulle
+      Alert.alert("✅ Rekisteröityminen onnistui!");
       navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
     } catch (error) {
       console.error("Virhe rekisteröitymisessä:", error);
       Alert.alert("Virhe", "Rekisteröityminen epäonnistui.");
     } finally {
-      setLoading(false); // Lopetetaan lataustila
+      setLoading(false);
     }
   };
 
-  // Funktio tekee POST-pyynnön API:lle, joka asettaa käyttäjälle roolin
-  const assignRoleToUser = async (userId, role, accessToken) => {
-    // Haetaan appRoleId roolin nimen perusteella (Landlord tai Tenant)
-    const appRoleId = roleIds[role];
+  //  Lähettää uuden käyttäjän tiedot omaan backend-APIin (POST /users)
+  const createUser = async (userId, role, accessToken) => {
+    const url = "http://vuokraappi-api-gw-dev.azure-api.net/users/";
 
-    if (!appRoleId) {
-      throw new Error("Tuntematon rooli: " + role);
-    }
-
-    // API-osoite roolin asettamiselle (POST-pyyntö)
-    const url = `http://vuokraappi-api-gw-dev.azure-api.net/users/${userId}/appRoleAssignments`;
-
-    // Pyynnön body noudattaa Postman-esimerkkiä:
-    // principalId = käyttäjän Object ID
-    // resourceId = kiinteä resource tunniste (API:n id)
-    // appRoleId = valitun roolin id
     const body = {
-      principalId: userId,
-      resourceId: "527e1349-11e8-45e2-b038-f461d1626275",
-      appRoleId: appRoleId,
+      id: userId, // Käyttäjän Object ID
+      role: role, // "Landlord" tai "Tenant"
     };
 
-    // Lähetetään POST-pyyntö, mukana accessToken Bearer -otsakkeessa
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`, // Varmistaa, että API hyväksyy pyynnön
+        Authorization: `Bearer ${accessToken}`, // OAuth token headerissa
       },
       body: JSON.stringify(body),
     });
 
-    // Tarkistetaan vastaus, jos epäonnistui heitetään virhe
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(
-        `Roolin asetus epäonnistui: ${response.status} ${errorText}`
+        `Käyttäjän luonti epäonnistui: ${response.status} ${errorText}`
       );
     }
   };
 
-  // JSX: Renderöidään rekisteröitymispainike ja latausspinneri
+  //  Käyttöliittymä: näytetään painike ja mahdollinen latausindikaattori
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -193,7 +182,7 @@ export default function RegisterScreen({ navigation, route }) {
   );
 }
 
-// Tyylit, jotka tekevät UI:sta siistin ja selkeän
+// 🎨 Tyylit: moderni ja yksinkertainen ulkoasu
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -202,17 +191,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
     paddingHorizontal: 24,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 40,
-    color: "#334155",
-  },
   button: {
     backgroundColor: "#3b82f6",
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 12,
   },
-  buttonText: { color: "white", fontWeight: "700", fontSize: 18 },
+  buttonText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 18,
+  },
 });

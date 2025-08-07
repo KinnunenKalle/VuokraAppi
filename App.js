@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 import * as React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { GestureHandlerRootView } from "react-native-gesture-handler"; // 👈 Tämä lisätty
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // Näkymät
 import Login from "./components/Login.js";

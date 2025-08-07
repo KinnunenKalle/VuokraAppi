@@ -74,6 +74,7 @@ export default function Login({ navigation }) {
           // Saadaan access-token ja id-token
           const accessToken = tokenResult.accessToken;
           const idToken = tokenResult.idToken;
+          console.log("Accestoken:", accessToken);
 
           // Puretaan tokenit luettavaksi JSONiksi
           const decodedAccess = jwt_decode(accessToken);

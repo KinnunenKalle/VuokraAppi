@@ -440,7 +440,7 @@ export default function ApartmentDetails({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#f8fafc", // Sama kuin Homepage-tausta
   },
   content: {
     padding: 24,

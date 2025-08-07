@@ -3,7 +3,8 @@ import { View, ActivityIndicator, StyleSheet, Alert } from "react-native";
 import { WebView } from "react-native-webview";
 
 export default function MapScreen({ route }) {
-  const { address } = route.params;
+  const { apartment } = route.params;
+  const address = `${apartment.streetAddress}, ${apartment.zipcode}`;
   const [mapUrl, setMapUrl] = useState(null);
 
   useEffect(() => {
