@@ -1,26 +1,29 @@
-// Tuodaan React Native -komponentteja ja tyylit
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
-// React ja efektien käyttö
 import React, { useEffect } from "react";
-// Expo WebBrowser -moduuli, jolla voidaan avata selainikkuna sovelluksen sisällä
+
+// Expo-moduuli selaimessa avattavan auth-sessionin käsittelyyn
 import * as WebBrowser from "expo-web-browser";
-// Expo Auth Session -kirjasto OAuth-autentikointiin
+
+// AuthSession: kirjautumispyynnöt ja tokenin vaihto
 import {
   useAuthRequest,
   makeRedirectUri,
   exchangeCodeAsync,
 } from "expo-auth-session";
-// Oma AuthContext, josta saa autentikointitiedot ja setterit
+
+// Oma autentikointikonteksti, josta saadaan setAccessToken jne.
 import { useAuth } from "./AuthContext";
-// Kirjasto JWT-tokenin purkamiseen
+
+// Kirjasto JWT-tokenin purkamiseen (accessToken sisältää käyttäjä-ID:n)
 import jwt_decode from "jwt-decode";
-// Oma komponentti, joka näyttää logon
+
+// Logokomponentti yläosaan
 import Logo from "./Logo";
 
-// Jos autentikointisessio on kesken, pyritään saattamaan se loppuun
+// Sulkee mahdollisen avoinna olevan auth-selaimen
 WebBrowser.maybeCompleteAuthSession();
 
-// OAuth-palvelun osoitteet (OpenID Connect -discovery)
+// CIAM:in OAuth 2.0 -päätepisteet
 const discovery = {
   authorizationEndpoint:
     "https://vuokraappi.ciamlogin.com/95e94f96-fda6-4111-953a-439ab54fce6e/oauth2/v2.0/authorize",
@@ -29,114 +32,133 @@ const discovery = {
 };
 
 export default function Login({ navigation }) {
-  // OAuth:n uudelleenohjaus-URI, käytetään Expo:n proxyä helpottamaan kehitystä
+  // Luo redirect-URI (käytetään Expon proxyä kehityksessä)
   const redirectUri = makeRedirectUri({ useProxy: true });
 
-  // Määritellään autentikointipyyntö Expo Auth Sessionilla
+  // Määrittele kirjautumispyyntö
   const [request, response, promptAsync] = useAuthRequest(
     {
-      clientId: "ea427158-f1f3-47af-b515-8da8a2744379", // Sovelluksen client ID
-      redirectUri, // Mihin palvelu uudelleenohjaa kirjautumisen jälkeen
-      responseType: "code", // Käytetään authorization code -virtausta
+      clientId: "ea427158-f1f3-47af-b515-8da8a2744379", // Azure CIAMin client ID
+      redirectUri,
+      responseType: "code", // Käytetään authorization code -flow'ta
       scopes: [
-        // Oikeudet joita pyydetään
         "openid profile",
-        "api://3f790413-a01c-4d36-9823-dbc0ed63bc67/offline",
+        "api://3f790413-a01c-4d36-9823-dbc0ed63bc67/offline", // Oman API:n käyttöoikeus
       ],
     },
-    discovery // OAuth palvelun tiedot
+    discovery
   );
 
-  // Haetaan AuthContextista setterit tokenille ja käyttäjä-ID:lle
-  const { setAccessToken, setUserId } = useAuth();
+  // Haetaan kontekstista setterit accessTokenille, userId:lle ja roolille
+  const { setAccessToken, setUserId, setSelectedRole } = useAuth();
 
-  // Efekti suoritetaan aina kun 'response' muuttuu (eli kun kirjautumisesta saadaan vastaus)
+  // Tämä efekti ajetaan aina kun kirjautumisvastauksen tila (response) muuttuu
   useEffect(() => {
-    const getTokenAndCallApi = async () => {
-      // Tarkistetaan että vastaus on onnistunut
+    const getTokenAndUserInfo = async () => {
       if (response?.type === "success") {
-        const code = response.params.code; // Otetaan authorization code
-
         try {
-          // Vaihdetaan authorization code access-tokeniksi ja id-tokeniksi
+          const code = response.params.code;
+
+          // Vaihdetaan authorization code -> access ja id token
           const tokenResult = await exchangeCodeAsync(
             {
               clientId: "ea427158-f1f3-47af-b515-8da8a2744379",
               redirectUri,
               code,
               extraParams: {
-                code_verifier: request.codeVerifier, // PKCE varmistus
+                code_verifier: request.codeVerifier, // PKCE
               },
             },
             discovery
           );
 
-          // Saadaan access-token ja id-token
+          // Tallennetaan access token ja dekoodataan siitä oid
           const accessToken = tokenResult.accessToken;
-          const idToken = tokenResult.idToken;
-          console.log("Accestoken:", accessToken);
-
-          // Puretaan tokenit luettavaksi JSONiksi
           const decodedAccess = jwt_decode(accessToken);
-          const decodedId = jwt_decode(idToken);
+          const userId = decodedAccess?.oid;
 
-          // Etsitään käyttäjä-ID tokenista (oid = Object ID)
-          const userId = decodedAccess?.oid || decodedId?.oid;
-
-          // Yritetään hakea rooli tokenin eri kentistä
-          const roleFromAccess =
-            decodedAccess?.roles ||
-            decodedAccess?.role ||
-            decodedAccess["extension_role"];
-          const roleFromId =
-            decodedId?.roles || decodedId?.role || decodedId["extension_role"];
-
-          // Jos käyttäjä-ID puuttuu, näytetään virhe
+          // Tarkista että käyttäjän ID löytyi
           if (!userId) {
-            Alert.alert("Virhe", "Käyttäjä-ID puuttuu tokenista.");
+            Alert.alert("Virhe", "Käyttäjän ID (oid) puuttuu tokenista.");
             return;
           }
 
-          // Tallennetaan token ja käyttäjä-ID AuthContextiin (käytetään myöhemmin sovelluksessa)
+          // Tallennetaan tokenit AuthContextiin
           setAccessToken(accessToken);
           setUserId(userId);
 
-          // Navigoidaan sovelluksen pääsivulle ja tyhjennetään navigaatiopino (estetään paluu login-sivulle)
-          navigation.reset({
-            index: 0,
-            routes: [{ name: "MainApp" }],
-          });
+          // Haetaan käyttäjän tiedot backendistä käyttäjä-ID:llä
+          const userData = await fetchUserData(userId, accessToken);
+          if (userData?.role) {
+            setSelectedRole(userData.role); // Tallennetaan rooli AuthContextiin
+          } else {
+            console.warn("Roolia ei löytynyt backendin vastauksesta.");
+          }
 
-          // Näytetään ilmoitus onnistuneesta kirjautumisesta
+          // Navigoidaan pääsivulle (tyhjennetään navigaatiopino)
+          if (userData?.role === "Landlord") {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Mainapp" }],
+            });
+          } else if (userData?.role === "TENANT") {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "TenantHomepage" }],
+            });
+          } else {
+            Alert.alert("Virhe", "Tuntematon rooli: " + userData?.role);
+          }
+
+          // Ilmoitus onnistuneesta kirjautumisesta
           Alert.alert("Kirjautuminen onnistui!");
         } catch (err) {
-          // Virheiden käsittely, esim. tokenin vaihto epäonnistui
-          console.error("Virhe tokenin haussa tai purkamisessa:", err);
+          console.error("Virhe kirjautumisessa:", err);
           Alert.alert("Virhe", "Kirjautuminen epäonnistui.");
         }
       }
     };
-
-    // Suoritetaan tokenin haku ja käsittely kun response päivittyy
-    getTokenAndCallApi();
+    getTokenAndUserInfo();
   }, [response]);
+
+  // Hakee käyttäjän tiedot backendistä GET /users/{id}
+  const fetchUserData = async (userId, accessToken) => {
+    const response = await fetch(
+      `http://vuokraappi-api-gw-dev.azure-api.net/users/${userId}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Käyttäjän haku epäonnistui:", response.status, errorText);
+      throw new Error("Käyttäjän tietojen haku epäonnistui.");
+    }
+
+    const data = await response.json();
+    return data; // oletetaan: { id: "...", role: "Tenant" }
+  };
 
   return (
     <View style={styles.container}>
-      {/* Yläosa logolla ja tervetulotekstillä */}
+      {/* Yläosa logolla ja tekstillä */}
       <View style={styles.headerContainer}>
         <Logo size={72} />
         <Text style={styles.headerText}>Tervetuloa VuokraAppiin!</Text>
       </View>
 
-      {/* Kirjautumispainike, joka avaa OAuth-kirjautumisen selaimessa */}
+      {/* Kirjautumispainike */}
       <View style={styles.card}>
         <TouchableOpacity onPress={() => promptAsync()} activeOpacity={0.8}>
           <Text style={styles.buttonText}>Kirjaudu sisään selaimessa</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Rekisteröitymispainike, joka vie rekisteröitymissivulle */}
+      {/* Rekisteröitymispainike */}
       <View style={styles.card}>
         <TouchableOpacity
           onPress={() => navigation.navigate("SelectRole")}
@@ -149,7 +171,7 @@ export default function Login({ navigation }) {
   );
 }
 
-// Tyylit komponentille
+// Tyylit
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#f8fafc",
