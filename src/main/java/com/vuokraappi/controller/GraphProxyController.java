@@ -58,7 +58,7 @@ public class GraphProxyController {
             if (method == HttpMethod.POST) {
                 try {
                     JsonNode json = objectMapper.readTree(body);
-                    String userIdStr = json.has("id") ? json.get("id").asText() : null;
+                    String userIdStr = json.has(  "id") ? json.get("id").asText() : null;
                     String role = json.has("role") ? json.get("role").asText().toUpperCase() : null;
 
                     if (userIdStr == null || userIdStr.isBlank()) {
@@ -86,6 +86,9 @@ public class GraphProxyController {
                         roleRequest.put("principalId", userId.toString());
                         roleRequest.put("resourceId", resourceId);
                         roleRequest.put("appRoleId", appRoleId);
+System.out.println("POST to: " + roleAssignmentUrl);
+System.out.println("Body: " + roleRequest.toPrettyString());
+System.out.println("Token (first 20 chars): " + newToken.substring(0, 20));
 
                         return webClient.post()
                             .uri(roleAssignmentUrl)

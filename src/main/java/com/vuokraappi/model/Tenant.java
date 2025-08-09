@@ -8,6 +8,8 @@ public class Tenant {
     @Id
     private UUID id;
 
+    private String pet;
+
     @OneToOne
     @MapsId
     @JoinColumn(name = "id")
@@ -18,4 +20,7 @@ public class Tenant {
 
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+
+    public String getPet() { return pet; }
+    public void setPet(String pet) { this.pet = pet; }
 }

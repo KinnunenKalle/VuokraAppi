@@ -2,6 +2,8 @@ package com.vuokraappi.model;
 
 import jakarta.persistence.*;
 import java.util.UUID;
+import java.util.Date;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
@@ -11,6 +13,17 @@ public class User {
     private UUID id; // Sama kuin Azure AD:n userId
 
     private String role; // "TENANT" tai "LANDLORD"
+
+    private String personalIdentityCode;
+
+    private Date dateOfBirth;
+
+    public enum Gender {male, female, other};
+
+    private Gender gender;
+
+    @Column(length = 2000)
+    private String introduction;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
@@ -32,4 +45,16 @@ public class User {
 
     public Landlord getLandlord() { return landlord; }
     public void setLandlord(Landlord landlord) { this.landlord = landlord; }
+
+    public String getPersonalIdentityCode() { return personalIdentityCode; }
+    public void getPersonalIdentityCode(String personalIdentityCode) { this.personalIdentityCode = personalIdentityCode; }
+
+    public Date getDateOfBirth() { return dateOfBirth; }
+    public void setDateOfBirth(Date dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public Gender getGender() { return gender; }
+    public void setGender(Gender gender) {this.gender = gender;}
+
+    public String getIntroduction() { return introduction; }
+    public void setIntroduction(String introduction) { this.introduction = introduction; }
 }
