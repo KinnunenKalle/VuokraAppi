@@ -18,7 +18,7 @@ public class User {
 
     private Date dateOfBirth;
 
-    public enum Gender {male, female, other};
+    public enum Gender {MALE, FEMALE, OTHER};
 
     private Gender gender;
 
