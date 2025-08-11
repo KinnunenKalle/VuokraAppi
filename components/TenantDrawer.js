@@ -8,7 +8,7 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { Alert } from "react-native";
 
-import Homepage from "./Homepage";
+import TenantHomepage from "./TenantHomepage";
 import UserInfo from "./UserInfo";
 import { useAuth } from "./AuthContext";
 
@@ -32,7 +32,6 @@ export const logoutWithConfirmation = async (
       {
         text: "Kirjaudu ulos",
         style: "destructive",
-
         onPress: async () => {
           try {
             const response = await fetch(
@@ -47,10 +46,8 @@ export const logoutWithConfirmation = async (
             );
 
             if (response.ok) {
-              //  Tyhjennä käyttäjätiedot contextista
               setAccessToken(null);
               setUserId(null);
-
               navigation.reset({
                 index: 0,
                 routes: [{ name: "Login" }],
@@ -70,12 +67,12 @@ export const logoutWithConfirmation = async (
   );
 };
 
-export default function DrawerNavigator({ navigation }) {
-  const { accessToken, userId, setAccessToken, setUserId } = useAuth(); //  Contextista
+export default function TenantDrawer({ navigation }) {
+  const { accessToken, userId, setAccessToken, setUserId } = useAuth();
 
   return (
     <Drawer.Navigator
-      initialRouteName="Etusivu"
+      initialRouteName="Vuokralaisen etusivu"
       screenOptions={{
         drawerActiveTintColor: "#03bafc",
         headerShown: true,
@@ -100,8 +97,8 @@ export default function DrawerNavigator({ navigation }) {
       )}
     >
       <Drawer.Screen
-        name="Etusivu"
-        component={Homepage}
+        name="Vuokralaisen etusivu"
+        component={TenantHomepage}
         options={{
           drawerIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
@@ -115,16 +112,6 @@ export default function DrawerNavigator({ navigation }) {
           title: "Muokkaa käyttäjätietoja",
           drawerIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
-        name="TenantHomepage"
-        component={TenantHomepage}
-        options={{
-          title: "Vuokralaisen etusivu",
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />

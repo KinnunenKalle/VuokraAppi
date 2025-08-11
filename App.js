@@ -18,6 +18,7 @@ import SelectRoleScreen from "./components/SelectRoleScreen.js";
 import RegisterScreen from "./components/RegisterScreen.js";
 import MapScreen from "./components/MapScreen.js";
 import TenantHomepage from "./components/TenantHomepage.js";
+import TenantDrawer from "./components/TenantDrawer.js";
 
 // AuthContext-provideri tokenin ja käyttäjän hallintaan
 import { AuthProvider } from "./components/AuthContext";
@@ -50,7 +51,7 @@ export default function App() {
             />
             <Stack.Screen name="EditApartment" component={EditApartment} />
             <Stack.Screen name="MapScreen" component={MapScreen} />
-            <Stack.Screen name="TenantHomepage" component={TenantHomepage} />
+            <Stack.Screen name="TenantApp" component={TenantDrawer} />
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>

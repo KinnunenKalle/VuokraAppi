@@ -99,12 +99,12 @@ export default function Login({ navigation }) {
           if (userData?.role === "Landlord") {
             navigation.reset({
               index: 0,
-              routes: [{ name: "Mainapp" }],
+              routes: [{ name: "MainApp" }],
             });
           } else if (userData?.role === "TENANT") {
             navigation.reset({
               index: 0,
-              routes: [{ name: "TenantHomepage" }],
+              routes: [{ name: "TenantApp" }],
             });
           } else {
             Alert.alert("Virhe", "Tuntematon rooli: " + userData?.role);
