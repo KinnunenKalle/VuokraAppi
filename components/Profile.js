@@ -15,39 +15,37 @@ import { Picker } from "@react-native-picker/picker";
 
 // Profile-näkymä vuokralaisen profiilin muokkaamiseen
 export default function Profile() {
-  const { accessToken, userId } = useAuth(); // AuthContextista haetaan token ja userId
+  const { accessToken, userId } = useAuth();
 
-  const [loading, setLoading] = useState(true); // latausindikaattori
+  const [loading, setLoading] = useState(true);
 
-  // --- Profiilin kenttien state-muuttujat ---
-  const [birthdate, setBirthdate] = useState(null); // date_of_birth (datetime2)
-  const [showDatePicker, setShowDatePicker] = useState(false); // näytetään datepicker
-  const [introduction, setIntroduction] = useState(""); // introduction
-  const [hasPet, setHasPet] = useState(false); // onko lemmikki
-  const [pet, setPet] = useState(""); // pet
-  const [gender, setGender] = useState(""); // gender smallint
+  // --- Profiilin kentät ---
+  const [birthdate, setBirthdate] = useState(null); // dateOfBirth
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [introduction, setIntroduction] = useState("");
+  const [hasPet, setHasPet] = useState(false);
+  const [pet, setPet] = useState("");
+  const [gender, setGender] = useState("");
 
-  // --- Profiilin tietojen haku API:sta ---
+  // --- Profiilin haku ---
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const res = await fetch(
           `https://vuokraappi-api-gw-dev.azure-api.net/users/${userId}`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
+          { headers: { Authorization: `Bearer ${accessToken}` } }
         );
-        if (!res.ok) throw new Error("Virhe ladattaessa profiilia");
+
+        if (!res.ok)
+          throw new Error(`Virhe ladattaessa profiilia: ${res.status}`);
 
         const data = await res.json();
 
-        // Syntymäaika, jos ei ole null
-        setBirthdate(data.date_of_birth ? new Date(data.date_of_birth) : null);
+        // dateOfBirth
+        setBirthdate(data.dateOfBirth ? new Date(data.dateOfBirth) : null);
         setIntroduction(data.introduction || "");
         setHasPet(!!data.pet);
         setPet(data.pet || "");
-
-        // gender smallint kenttään: 0=En halua kertoa, 1=Mies, 2=Nainen, 3=Muu
         setGender(data.gender !== null ? data.gender.toString() : "");
       } catch (error) {
         console.error(error);
@@ -60,12 +58,11 @@ export default function Profile() {
     fetchProfile();
   }, []);
 
-  // --- Tallennus API:iin ---
+  // --- Tallennus PATCH ---
   const saveProfile = async () => {
     try {
-      // Muodostetaan PATCH-kutsun body
       const body = {
-        date_of_birth: birthdate ? birthdate.toISOString() : null,
+        dateOfBirth: birthdate ? birthdate.toISOString() : null,
         introduction,
         pet: hasPet ? pet : "",
         gender: gender !== "" ? parseInt(gender, 10) : null,
@@ -83,14 +80,21 @@ export default function Profile() {
         }
       );
 
-      // API:n vastaus JSON-muodossa
-      const data = await res.json();
+      // Käsitellään tyhjä body turvallisesti
+      const text = await res.text();
+      let data = null;
+      if (text) data = JSON.parse(text);
+
+      console.log("PATCH status:", res.status);
       console.log("PATCH response:", data);
 
       if (res.ok) {
         Alert.alert("Tallennettu", "Profiilin tiedot päivitettiin.");
       } else {
-        Alert.alert("Virhe", "Tallennus epäonnistui. Tarkista tiedot.");
+        Alert.alert(
+          "Virhe",
+          `Tallennus epäonnistui. Status: ${res.status}. Response: ${text}`
+        );
       }
     } catch (error) {
       console.error(error);
@@ -98,7 +102,6 @@ export default function Profile() {
     }
   };
 
-  // --- Ladataan näkymä, jos loading true ---
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -146,7 +149,7 @@ export default function Profile() {
         <Text style={styles.charCount}>{introduction.length}/1000</Text>
       </View>
 
-      {/* --- Lemmikkieläin --- */}
+      {/* --- Lemmikki --- */}
       <View style={styles.card}>
         <View style={styles.switchRow}>
           <Text style={styles.label}>Onko sinulla lemmikki?</Text>
@@ -179,7 +182,7 @@ export default function Profile() {
         </View>
       </View>
 
-      {/* --- Tallenna-painike --- */}
+      {/* --- Tallenna --- */}
       <TouchableOpacity style={styles.button} onPress={saveProfile}>
         <Text style={styles.buttonText}>Tallenna</Text>
       </TouchableOpacity>
