@@ -9,6 +9,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-community/datetimepicker": "^8.4.4",
+    "@react-native-picker/picker": "^2.11.1",
     "@react-navigation/drawer": "^7.5.2",
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/native-stack": "^7.3.14",
@@ -22,6 +24,7 @@
     "expo-web-browser": "~14.2.0",
     "js-base64": "^3.7.7",
     "jwt-decode": "^3.1.2",
+    "lucide-react-native": "^0.539.0",
     "react": "19.0.0",
     "react-native": "0.79.3",
     "react-native-gesture-handler": "^2.27.2",

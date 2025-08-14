@@ -14,7 +14,7 @@ import { useAuth } from "./AuthContext";
 
 const Drawer = createDrawerNavigator();
 
-export const logoutWithConfirmation = async (
+export const logoutWithConfirmation = (
   accessToken,
   userId,
   navigation,
@@ -25,10 +25,7 @@ export const logoutWithConfirmation = async (
     "Vahvista uloskirjautuminen",
     "Haluatko varmasti kirjautua ulos?",
     [
-      {
-        text: "Peruuta",
-        style: "cancel",
-      },
+      { text: "Peruuta", style: "cancel" },
       {
         text: "Kirjaudu ulos",
         style: "destructive",
@@ -53,8 +50,11 @@ export const logoutWithConfirmation = async (
                 routes: [{ name: "Login" }],
               });
             } else {
-              const error = await response.json();
-              console.error("Uloskirjautuminen epäonnistui:", error);
+              // Ei yritetä lukea response.json(), koska response ei välttämättä ole JSON
+              console.error(
+                "Uloskirjautuminen epäonnistui: status",
+                response.status
+              );
               Alert.alert("Virhe", "Uloskirjautuminen epäonnistui.");
             }
           } catch (err) {

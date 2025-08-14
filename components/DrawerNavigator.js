@@ -14,7 +14,7 @@ import { useAuth } from "./AuthContext";
 
 const Drawer = createDrawerNavigator();
 
-export const logoutWithConfirmation = async (
+export const logoutWithConfirmation = (
   accessToken,
   userId,
   navigation,
@@ -25,14 +25,10 @@ export const logoutWithConfirmation = async (
     "Vahvista uloskirjautuminen",
     "Haluatko varmasti kirjautua ulos?",
     [
-      {
-        text: "Peruuta",
-        style: "cancel",
-      },
+      { text: "Peruuta", style: "cancel" },
       {
         text: "Kirjaudu ulos",
         style: "destructive",
-
         onPress: async () => {
           try {
             const response = await fetch(
@@ -41,23 +37,23 @@ export const logoutWithConfirmation = async (
                 method: "POST",
                 headers: {
                   Authorization: `Bearer ${accessToken}`,
-                  "Content-Type": "application/json",
+                  // "Content-Type": "application/json", // POISTETTU
                 },
               }
             );
-
             if (response.ok) {
-              //  Tyhjennä käyttäjätiedot contextista
               setAccessToken(null);
               setUserId(null);
-
               navigation.reset({
                 index: 0,
                 routes: [{ name: "Login" }],
               });
             } else {
-              const error = await response.json();
-              console.error("Uloskirjautuminen epäonnistui:", error);
+              // Ei yritetä lukea response.json(), koska response ei välttämättä ole JSON
+              console.error(
+                "Uloskirjautuminen epäonnistui: status",
+                response.status
+              );
               Alert.alert("Virhe", "Uloskirjautuminen epäonnistui.");
             }
           } catch (err) {
@@ -115,16 +111,6 @@ export default function DrawerNavigator({ navigation }) {
           title: "Muokkaa käyttäjätietoja",
           drawerIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Drawer.Screen
-        name="TenantHomepage"
-        component={TenantHomepage}
-        options={{
-          title: "Vuokralaisen etusivu",
-          drawerIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />
