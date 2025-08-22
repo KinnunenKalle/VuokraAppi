@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,10 +16,10 @@ import {
 import { useAuth } from "./AuthContext";
 import jwt_decode from "jwt-decode";
 
-// Varmistaa, että selainikkuna sulkeutuu oikein kirjautumisen jälkeen
+// Sulkee avoinna olevan auth-selaimen
 WebBrowser.maybeCompleteAuthSession();
 
-// OAuth 2.0 -palvelimen päätepisteet
+// OAuth 2.0 -päätepisteet
 const discovery = {
   authorizationEndpoint:
     "https://vuokraappi.ciamlogin.com/95e94f96-fda6-4111-953a-439ab54fce6e/oauth2/v2.0/authorize",
@@ -28,9 +28,7 @@ const discovery = {
 };
 
 export default function RegisterScreen({ navigation }) {
-  // Luodaan redirect URI Expo-proxyn kautta
   const redirectUri = makeRedirectUri({ useProxy: true });
-
   const [loading, setLoading] = useState(false);
 
   // AuthContext: accessToken, userId ja rooli
@@ -60,12 +58,12 @@ export default function RegisterScreen({ navigation }) {
     }
   }, [response]);
 
-  // OAuth-tokenin vaihto ja käyttäjän luonti
   const handleAuth = async (response) => {
     setLoading(true);
     try {
       const code = response.params.code;
 
+      // Vaihdetaan authorization code -> tokenit
       const tokenResult = await exchangeCodeAsync(
         {
           clientId: "ea427158-f1f3-47af-b515-8da8a2744379",
@@ -92,22 +90,20 @@ export default function RegisterScreen({ navigation }) {
       setAccessToken(accessToken);
       setUserId(userId);
 
-      // Luodaan käyttäjä backendissä (jos ei vielä ole olemassa)
-      await createUser(userId, accessToken);
+      // Rooli tulee suoraan Entrasta (Tenant tai Landlord)
+      // Jos haluat, voit kovakoodata esimerkiksi Tenant rekisteröitymiseen
+      const role = "Tenant"; // tai "Landlord" tarpeen mukaan
 
-      // Haetaan oikea rooli backendistä
-      const res = await fetch(
-        `http://vuokraappi-api-gw-dev.azure-api.net/users/${userId}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const data = await res.json();
+      // Luo käyttäjä backendissä
+      await createUser(userId, role, accessToken);
 
-      setSelectedRole(data.role);
+      // Tallenna rooli AuthContextiin
+      setSelectedRole(role);
 
       Alert.alert("Rekisteröityminen onnistui!");
 
-      // Navigoidaan roolin mukaan
-      if (data.role === "Landlord") {
+      // Navigoi oikeaan näkymään roolin mukaan
+      if (role === "Landlord") {
         navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
       } else {
         navigation.reset({ index: 0, routes: [{ name: "TenantApp" }] });
@@ -120,9 +116,9 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
-  // Lähettää uuden käyttäjän tiedot omaan backend-APIin (POST /users)
-  const createUser = async (userId, accessToken) => {
-    const body = { id: userId };
+  // Luo käyttäjän backendissä POST /users/
+  const createUser = async (userId, role, accessToken) => {
+    const body = { id: userId, role };
 
     console.log("Lähetetään backendille:", body);
 
@@ -149,7 +145,6 @@ export default function RegisterScreen({ navigation }) {
     console.log("Käyttäjä luotu onnistuneesti!");
   };
 
-  // Renderöinti: painike ja latausindikaattori
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -173,7 +168,6 @@ export default function RegisterScreen({ navigation }) {
   );
 }
 
-// Tyylit
 const styles = StyleSheet.create({
   container: {
     flex: 1,

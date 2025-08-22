@@ -14,7 +14,6 @@ import DrawerNavigator from "./components/DrawerNavigator.js";
 import AddApartment from "./components/AddApartment.js";
 import ApartmentDetails from "./components/ApartmentDetails.js";
 import EditApartment from "./components/EditAparments.js";
-import SelectRoleScreen from "./components/SelectRoleScreen.js";
 import RegisterScreen from "./components/RegisterScreen.js";
 import MapScreen from "./components/MapScreen.js";
 import TenantHomepage from "./components/TenantHomepage.js";
