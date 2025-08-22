@@ -74,6 +74,7 @@ export default function Login({ navigation }) {
 
           // Tallennetaan access token ja dekoodataan siitä oid
           const accessToken = tokenResult.accessToken;
+          console.log("Access token:", accessToken);
           const decodedAccess = jwt_decode(accessToken);
           const userId = decodedAccess?.oid;
 
@@ -161,7 +162,7 @@ export default function Login({ navigation }) {
       {/* Rekisteröitymispainike */}
       <View style={styles.card}>
         <TouchableOpacity
-          onPress={() => navigation.navigate("SelectRole")}
+          onPress={() => navigation.navigate("Register", { role: "Tenant" })}
           activeOpacity={0.8}
         >
           <Text style={styles.buttonText}>Rekisteröidy</Text>

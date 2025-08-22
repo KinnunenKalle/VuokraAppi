@@ -16,71 +16,62 @@ import {
 import { useAuth } from "./AuthContext";
 import jwt_decode from "jwt-decode";
 
-//  Varmistaa, että selainikkuna sulkeutuu oikein kirjautumisen jälkeen
+// Varmistaa, että selainikkuna sulkeutuu oikein kirjautumisen jälkeen
 WebBrowser.maybeCompleteAuthSession();
 
-//  OAuth 2.0 -palvelimen päätepisteet kirjautumiselle ja tokenien vaihdolle
+// OAuth 2.0 -palvelimen päätepisteet
 const discovery = {
   authorizationEndpoint:
     "https://vuokraappi.ciamlogin.com/95e94f96-fda6-4111-953a-439ab54fce6e/oauth2/v2.0/authorize",
-
   tokenEndpoint:
     "https://vuokraappi.ciamlogin.com/95e94f96-fda6-4111-953a-439ab54fce6e/oauth2/v2.0/token",
 };
 
-export default function RegisterScreen({ navigation, route }) {
-  //  Rooli valitaan SelectRoleScreenissä ja välitetään route-parametrina
-  const { role } = route.params || {};
-
-  //  Luo redirect-osoitteen, johon OAuth vastaa (käytetään Expo-proxya)
+export default function RegisterScreen({ navigation }) {
+  // Luodaan redirect URI Expo-proxyn kautta
   const redirectUri = makeRedirectUri({ useProxy: true });
 
-  //  Määritellään kirjautumispyyntö expo-auth-sessionin kautta
+  const [loading, setLoading] = useState(false);
+
+  // AuthContext: accessToken, userId ja rooli
+  const { setAccessToken, setUserId, setSelectedRole } = useAuth();
+
+  // Määritellään OAuth-kirjautumispyyntö
   const [request, response, promptAsync] = useAuthRequest(
     {
-      clientId: "ea427158-f1f3-47af-b515-8da8a2744379", // Azure CIAM client ID
+      clientId: "ea427158-f1f3-47af-b515-8da8a2744379",
       redirectUri,
-      responseType: "code", // Käytetään Authorization Code -flow'ta
+      responseType: "code",
       scopes: [
         "openid",
         "profile",
-        "api://3f790413-a01c-4d36-9823-dbc0ed63bc67/offline", // API:n käyttöoikeus
+        "api://3f790413-a01c-4d36-9823-dbc0ed63bc67/offline",
       ],
     },
     discovery
   );
 
-  //  Tallennetaan accessToken ja userId sovelluksen tilaan kontekstin kautta
-  const { setAccessToken, setUserId, setSelectedRole } = useAuth();
-
-  const [loading, setLoading] = useState(false); // Lataustilan hallinta
-
-  //  Tarkkaillaan OAuth-vastausta
+  // Käsittelee OAuth-vastauksen
   useEffect(() => {
-    if (response?.type === "success" && role) {
-      // Jos kirjautuminen onnistui ja rooli on valittu, jatketaan
+    if (response?.type === "success") {
       handleAuth(response);
     } else if (response?.type === "error") {
       Alert.alert("Virhe", "Kirjautuminen epäonnistui.");
     }
-  }, [response, role]);
+  }, [response]);
 
-  //  Käsittelee OAuth-vastauksen: vaihtaa koodin tokeniksi, purkaa tiedot, ja kutsuu omaa APIa
+  // OAuth-tokenin vaihto ja käyttäjän luonti
   const handleAuth = async (response) => {
     setLoading(true);
-
     try {
-      const code = response.params.code; // Haetaan authorization code
+      const code = response.params.code;
 
-      //  Vaihdetaan koodi access- ja id-tokeniksi
       const tokenResult = await exchangeCodeAsync(
         {
           clientId: "ea427158-f1f3-47af-b515-8da8a2744379",
           redirectUri,
           code,
-          extraParams: {
-            code_verifier: request.codeVerifier, // PKCE-suojaus
-          },
+          extraParams: { code_verifier: request.codeVerifier },
         },
         discovery
       );
@@ -88,10 +79,8 @@ export default function RegisterScreen({ navigation, route }) {
       const accessToken = tokenResult.accessToken;
       const idToken = tokenResult.idToken;
 
-      //  Puretaan access- ja id-token JWT:stä
       const decodedAccess = jwt_decode(accessToken);
       const decodedId = jwt_decode(idToken);
-      //  Haetaan käyttäjän OID (Azure AD:n käyttäjä-ID)
       const userId = decodedAccess?.oid || decodedId?.oid;
 
       if (!userId) {
@@ -99,31 +88,30 @@ export default function RegisterScreen({ navigation, route }) {
         setLoading(false);
         return;
       }
-      console.log("Lähetetään käyttäjän luontiin:", {
-        userId,
-        role,
-        accessToken,
-      });
-      if (!role) {
-        Alert.alert(
-          "Virhe",
-          "Rooli puuttuu – tarkista, että valitsit roolin ennen rekisteröitymistä."
-        );
-        setLoading(false);
-        return;
-      }
 
-      //  Tallennetaan käyttäjätilat globaaliin AuthContextiin
       setAccessToken(accessToken);
       setUserId(userId);
-      setSelectedRole(role);
 
-      //  Luodaan käyttäjä backendin API:in ja asetetaan rooli
-      await createUser(userId, role, accessToken);
+      // Luodaan käyttäjä backendissä (jos ei vielä ole olemassa)
+      await createUser(userId, accessToken);
 
-      //  Ilmoitus ja navigointi pääsivulle
-      Alert.alert("✅ Rekisteröityminen onnistui!");
-      navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
+      // Haetaan oikea rooli backendistä
+      const res = await fetch(
+        `http://vuokraappi-api-gw-dev.azure-api.net/users/${userId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const data = await res.json();
+
+      setSelectedRole(data.role);
+
+      Alert.alert("Rekisteröityminen onnistui!");
+
+      // Navigoidaan roolin mukaan
+      if (data.role === "Landlord") {
+        navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: "TenantApp" }] });
+      }
     } catch (error) {
       console.error("Virhe rekisteröitymisessä:", error);
       Alert.alert("Virhe", "Rekisteröityminen epäonnistui.");
@@ -132,33 +120,36 @@ export default function RegisterScreen({ navigation, route }) {
     }
   };
 
-  //  Lähettää uuden käyttäjän tiedot omaan backend-APIin (POST /users)
-  const createUser = async (userId, role, accessToken) => {
-    const url = "http://vuokraappi-api-gw-dev.azure-api.net/users/";
+  // Lähettää uuden käyttäjän tiedot omaan backend-APIin (POST /users)
+  const createUser = async (userId, accessToken) => {
+    const body = { id: userId };
 
-    const body = {
-      id: userId, // Käyttäjän Object ID
-      role: role, // "Landlord" tai "Tenant"
-    };
+    console.log("Lähetetään backendille:", body);
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`, // OAuth token headerissa
-      },
-      body: JSON.stringify(body),
-    });
+    const response = await fetch(
+      "http://vuokraappi-api-gw-dev.azure-api.net/users/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(body),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error("Backend palautti virheen:", response.status, errorText);
       throw new Error(
         `Käyttäjän luonti epäonnistui: ${response.status} ${errorText}`
       );
     }
+
+    console.log("Käyttäjä luotu onnistuneesti!");
   };
 
-  //  Käyttöliittymä: näytetään painike ja mahdollinen latausindikaattori
+  // Renderöinti: painike ja latausindikaattori
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -182,7 +173,7 @@ export default function RegisterScreen({ navigation, route }) {
   );
 }
 
-// 🎨 Tyylit: moderni ja yksinkertainen ulkoasu
+// Tyylit
 const styles = StyleSheet.create({
   container: {
     flex: 1,

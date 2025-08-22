@@ -36,8 +36,6 @@ export default function App() {
             {/* Kirjautuminen */}
             <Stack.Screen name="Login" component={Login} />
 
-            {/* Rekisteröinnin roolivalinta */}
-            <Stack.Screen name="SelectRole" component={SelectRoleScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
 
             {/* Sovelluksen pääsisältö drawerin sisällä */}
