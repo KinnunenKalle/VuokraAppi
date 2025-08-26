@@ -1,72 +1,79 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  Switch,
+  ScrollView,
   Alert,
   StyleSheet,
-  ScrollView,
-  Switch,
 } from "react-native";
 import { useAuth } from "./AuthContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 
-// Profile-näkymä vuokralaisen profiilin muokkaamiseen
-export default function Profile() {
-  const { accessToken, userId } = useAuth();
+export default function Profile({ navigation }) {
+  const { accessToken, userId, selectedRole, setUserProfile } = useAuth();
 
   const [loading, setLoading] = useState(true);
 
-  // --- Profiilin kentät ---
-  const [birthdate, setBirthdate] = useState(null); // dateOfBirth
+  // Profiilikentät
+  const [birthdate, setBirthdate] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [introduction, setIntroduction] = useState("");
   const [hasPet, setHasPet] = useState(false);
   const [pet, setPet] = useState("");
   const [gender, setGender] = useState("");
 
-  // --- Profiilin haku ---
+  // Ladataan profiili aina kun näkymä avataan
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        setLoading(true);
         const res = await fetch(
           `https://vuokraappi-api-gw-dev.azure-api.net/users/${userId}`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
         );
-
-        if (!res.ok)
-          throw new Error(`Virhe ladattaessa profiilia: ${res.status}`);
+        if (!res.ok) throw new Error("Profiilin haku epäonnistui");
 
         const data = await res.json();
-
-        // dateOfBirth
         setBirthdate(data.dateOfBirth ? new Date(data.dateOfBirth) : null);
         setIntroduction(data.introduction || "");
         setHasPet(!!data.pet);
         setPet(data.pet || "");
-        setGender(data.gender !== null ? data.gender.toString() : "");
-      } catch (error) {
-        console.error(error);
-        Alert.alert("Virhe", "Profiilin lataus epäonnistui.");
+        setGender(data.gender || "");
+        setUserProfile(data); // Tallennetaan profiili Contextiin
+      } catch (err) {
+        console.error(err);
+        Alert.alert("Virhe", "Profiilin haku epäonnistui.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, []);
-
-  // --- Tallennus PATCH ---
+  }, [userId]);
+  // Tämä täytyy määritellä funktiossa, koska birthdate voi olla null
   const saveProfile = async () => {
     try {
+      // Muotoillaan päivämäärä muodossa YYYY-MM-DD (ilman kellonaikaa)
+      const formattedDate = birthdate
+        ? birthdate.toISOString().split("T")[0]
+        : null;
+
       const body = {
-        dateOfBirth: birthdate ? birthdate.toISOString() : null,
-        introduction,
-        pet: hasPet ? pet : "",
-        gender: gender !== "" ? parseInt(gender, 10) : null,
+        id: userId,
+        role: selectedRole || "tenant",
+        dateOfBirth: formattedDate, // Käytetään oikeaa muotoa
+        introduction: introduction || "",
+        pet: hasPet && pet ? pet : "",
+        gender: gender || null,
       };
+
+      console.log("Lähetettävä JSON:", body);
 
       const res = await fetch(
         `https://vuokraappi-api-gw-dev.azure-api.net/users/${userId}`,
@@ -80,24 +87,28 @@ export default function Profile() {
         }
       );
 
-      // Käsitellään tyhjä body turvallisesti
-      const text = await res.text();
-      let data = null;
-      if (text) data = JSON.parse(text);
-
-      console.log("PATCH status:", res.status);
-      console.log("PATCH response:", data);
-
-      if (res.ok) {
-        Alert.alert("Tallennettu", "Profiilin tiedot päivitettiin.");
-      } else {
-        Alert.alert(
-          "Virhe",
-          `Tallennus epäonnistui. Status: ${res.status}. Response: ${text}`
-        );
+      if (!res.ok) {
+        const text = await res.text();
+        console.log("PATCH failed:", res.status, text);
+        Alert.alert("Virhe", `Tallennus epäonnistui: ${res.status}`);
+        return;
       }
-    } catch (error) {
-      console.error(error);
+
+      // Päivitetään profiili uudelleen Contextiin
+      const profileRes = await fetch(
+        `https://vuokraappi-api-gw-dev.azure-api.net/users/${userId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      if (profileRes.ok) {
+        const updatedProfile = await profileRes.json();
+        setUserProfile(updatedProfile);
+      }
+
+      // Navigointi
+      navigation.navigate("TenantApp");
+    } catch (err) {
+      console.error(err);
       Alert.alert("Virhe", "Tallennus epäonnistui.");
     }
   };
@@ -112,7 +123,6 @@ export default function Profile() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* --- Syntymäaika --- */}
       <View style={styles.card}>
         <Text style={styles.label}>Syntymäaika</Text>
         <TouchableOpacity
@@ -136,20 +146,17 @@ export default function Profile() {
         )}
       </View>
 
-      {/* --- Kuvaus itsestä --- */}
       <View style={styles.card}>
-        <Text style={styles.label}>Kuvaus itsestä (max 1000 merkkiä)</Text>
+        <Text style={styles.label}>Kuvaus itsestä</Text>
         <TextInput
           style={[styles.input, { height: 120, textAlignVertical: "top" }]}
           value={introduction}
-          onChangeText={(text) => setIntroduction(text.slice(0, 1000))}
+          onChangeText={(text) => setIntroduction(text)}
           placeholder="Kerro hieman itsestäsi..."
           multiline
         />
-        <Text style={styles.charCount}>{introduction.length}/1000</Text>
       </View>
 
-      {/* --- Lemmikki --- */}
       <View style={styles.card}>
         <View style={styles.switchRow}>
           <Text style={styles.label}>Onko sinulla lemmikki?</Text>
@@ -165,7 +172,6 @@ export default function Profile() {
         )}
       </View>
 
-      {/* --- Sukupuoli --- */}
       <View style={styles.card}>
         <Text style={styles.label}>Sukupuoli</Text>
         <View style={styles.pickerWrapper}>
@@ -174,15 +180,13 @@ export default function Profile() {
             onValueChange={(itemValue) => setGender(itemValue)}
           >
             <Picker.Item label="Valitse sukupuoli" value="" />
-            <Picker.Item label="Mies" value="1" />
-            <Picker.Item label="Nainen" value="2" />
-            <Picker.Item label="Muu" value="3" />
-            <Picker.Item label="En halua kertoa" value="0" />
+            <Picker.Item label="Mies" value="male" />
+            <Picker.Item label="Nainen" value="female" />
+            <Picker.Item label="Muu" value="other" />
           </Picker>
         </View>
       </View>
 
-      {/* --- Tallenna --- */}
       <TouchableOpacity style={styles.button} onPress={saveProfile}>
         <Text style={styles.buttonText}>Tallenna</Text>
       </TouchableOpacity>
@@ -190,7 +194,6 @@ export default function Profile() {
   );
 }
 
-// --- Tyylit ---
 const styles = StyleSheet.create({
   container: { padding: 20 },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -212,7 +215,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#f9f9f9",
   },
-  charCount: { textAlign: "right", fontSize: 12, color: "#999", marginTop: 4 },
   switchRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -229,6 +231,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
+    marginTop: 10,
   },
   buttonText: { fontSize: 16, color: "black" },
 });

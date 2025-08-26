@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState } from "react";
 
-// Luodaan uusi konteksti, jonka kautta jaetaan kirjautumistiedot
+// Konteksti kirjautumistiedolle ja käyttäjäprofiilille
 const AuthContext = createContext();
 
-// AuthProvider tarjoaa kirjautumistiedot sovelluksen muille komponenteille
 export const AuthProvider = ({ children }) => {
-  const [accessToken, setAccessToken] = useState(null); // Käyttäjän access token
-  const [userId, setUserId] = useState(null); // Käyttäjän ID (oid tokenista)
-  const [selectedRole, setSelectedRole] = useState(null); // Valittu rooli rekisteröityessä
+  const [accessToken, setAccessToken] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [userProfile, setUserProfile] = useState(null); // Tallennetaan profiilitiedot
 
   return (
     <AuthContext.Provider
@@ -18,6 +18,8 @@ export const AuthProvider = ({ children }) => {
         setUserId,
         selectedRole,
         setSelectedRole,
+        userProfile,
+        setUserProfile,
       }}
     >
       {children}
@@ -25,5 +27,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// ✅ Hook helpompaan käyttöön muissa komponenteissa: esim. const { userId } = useAuth();
 export const useAuth = () => useContext(AuthContext);
