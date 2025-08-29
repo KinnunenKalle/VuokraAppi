@@ -58,60 +58,45 @@ export default function Login({ navigation }) {
       if (response?.type === "success") {
         try {
           const code = response.params.code;
-
-          // Vaihdetaan authorization code -> access ja id token
           const tokenResult = await exchangeCodeAsync(
             {
               clientId: "ea427158-f1f3-47af-b515-8da8a2744379",
               redirectUri,
               code,
-              extraParams: {
-                code_verifier: request.codeVerifier, // PKCE
-              },
+              extraParams: { code_verifier: request.codeVerifier },
             },
             discovery
           );
 
-          // Tallennetaan access token ja dekoodataan siitä oid
           const accessToken = tokenResult.accessToken;
-          console.log("Access token:", accessToken);
           const decodedAccess = jwt_decode(accessToken);
           const userId = decodedAccess?.oid;
 
-          // Tarkista että käyttäjän ID löytyi
           if (!userId) {
             Alert.alert("Virhe", "Käyttäjän ID (oid) puuttuu tokenista.");
             return;
           }
 
-          // Tallennetaan tokenit AuthContextiin
           setAccessToken(accessToken);
           setUserId(userId);
 
-          // Haetaan käyttäjän tiedot backendistä käyttäjä-ID:llä
           const userData = await fetchUserData(userId, accessToken);
+
           if (userData?.role) {
-            setSelectedRole(userData.role); // Tallennetaan rooli AuthContextiin
+            const normalizedRole = userData.role.toLowerCase();
+            setSelectedRole(normalizedRole);
+
+            if (normalizedRole === "landlord") {
+              navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
+            } else if (normalizedRole === "tenant") {
+              navigation.reset({ index: 0, routes: [{ name: "TenantApp" }] });
+            } else {
+              Alert.alert("Virhe", "Tuntematon rooli: " + userData.role);
+            }
           } else {
             console.warn("Roolia ei löytynyt backendin vastauksesta.");
           }
 
-          // Navigoidaan pääsivulle (tyhjennetään navigaatiopino)
-          if (userData?.role === "Landlord") {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "MainApp" }],
-            });
-          } else if (userData?.role === "TENANT") {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "TenantApp" }],
-            });
-          } else {
-            Alert.alert("Virhe", "Tuntematon rooli: " + userData?.role);
-          }
-
-          // Ilmoitus onnistuneesta kirjautumisesta
           Alert.alert("Kirjautuminen onnistui!");
         } catch (err) {
           console.error("Virhe kirjautumisessa:", err);

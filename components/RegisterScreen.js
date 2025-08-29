@@ -79,7 +79,9 @@ export default function RegisterScreen({ navigation }) {
 
       const decodedAccess = jwt_decode(accessToken);
       const decodedId = jwt_decode(idToken);
+
       const userId = decodedAccess?.oid || decodedId?.oid;
+      const role = decodedId?.user_role;
 
       if (!userId) {
         Alert.alert("Virhe", "Käyttäjä-ID puuttuu tokenista.");
@@ -87,23 +89,30 @@ export default function RegisterScreen({ navigation }) {
         return;
       }
 
+      if (!role) {
+        Alert.alert("Virhe", "Rooli puuttuu ID-tokenista.");
+        setLoading(false);
+        return;
+      }
+
+      // 🔑 Normalisoi rooli
+      const normalizedRole =
+        role && typeof role === "string"
+          ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
+          : role;
+
+      // Tallenna contextiin
       setAccessToken(accessToken);
       setUserId(userId);
+      setSelectedRole(normalizedRole);
 
-      // Rooli tulee suoraan Entrasta (Tenant tai Landlord)
-      // Jos haluat, voit kovakoodata esimerkiksi Tenant rekisteröitymiseen
-      const role = "Tenant"; // tai "Landlord" tarpeen mukaan
-
-      // Luo käyttäjä backendissä
-      await createUser(userId, role, accessToken);
-
-      // Tallenna rooli AuthContextiin
-      setSelectedRole(role);
+      // Luo käyttäjä backendissä normalisoidulla roolilla
+      await createUser(userId, normalizedRole, accessToken);
 
       Alert.alert("Rekisteröityminen onnistui!");
 
-      // Navigoi oikeaan näkymään roolin mukaan
-      if (role === "Landlord") {
+      // Navigointi roolin mukaan
+      if (normalizedRole === "Landlord") {
         navigation.reset({ index: 0, routes: [{ name: "MainApp" }] });
       } else {
         navigation.reset({ index: 0, routes: [{ name: "TenantApp" }] });

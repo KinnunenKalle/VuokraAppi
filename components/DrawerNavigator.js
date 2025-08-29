@@ -37,10 +37,11 @@ export const logoutWithConfirmation = (
                 method: "POST",
                 headers: {
                   Authorization: `Bearer ${accessToken}`,
-                  // "Content-Type": "application/json", // POISTETTU
+                  "Content-Type": "application/json",
                 },
               }
             );
+
             if (response.ok) {
               setAccessToken(null);
               setUserId(null);
