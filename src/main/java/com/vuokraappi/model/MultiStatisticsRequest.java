@@ -4,11 +4,11 @@ import java.util.List;
 
 public class MultiStatisticsRequest {
     private List<String> types;
-    private List<String> postalCodes;
+    private List<String> zipCodes;
 
     public List<String> getTypes() { return types; }
     public void setTypes(List<String> types) { this.types = types; }
 
-    public List<String> getPostalCodes() { return postalCodes; }
-    public void setPostalCodes(List<String> postalCodes) { this.postalCodes = postalCodes; }
+    public List<String> getZipCodes() { return zipCodes; }
+    public void setZipCodes(List<String> zipCodes) { this.zipCodes = zipCodes; }
 }

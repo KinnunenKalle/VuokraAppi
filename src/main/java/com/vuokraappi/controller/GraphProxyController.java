@@ -14,7 +14,8 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import reactor.core.publisher.Mono;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.UUID;
 
 @RestController
@@ -31,6 +32,8 @@ public class GraphProxyController {
     private UserService userService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final Logger log = LoggerFactory.getLogger(GraphProxyController.class);
 
     @RequestMapping("/**")
     public Mono<ResponseEntity<String>> proxy(
@@ -55,7 +58,7 @@ public class GraphProxyController {
             headers.setBearerAuth(initialToken);
 
             String filteredBody = body;
-            if (method == HttpMethod.POST) {
+            if (method == HttpMethod.POST  && !requestPath.endsWith("revokeSignInSessions")) {
                 try {
                     JsonNode json = objectMapper.readTree(body);
                     String userIdStr = json.has(  "id") ? json.get("id").asText() : null;
@@ -86,9 +89,6 @@ public class GraphProxyController {
                         roleRequest.put("principalId", userId.toString());
                         roleRequest.put("resourceId", resourceId);
                         roleRequest.put("appRoleId", appRoleId);
-System.out.println("POST to: " + roleAssignmentUrl);
-System.out.println("Body: " + roleRequest.toPrettyString());
-System.out.println("Token (first 20 chars): " + newToken.substring(0, 20));
 
                         return webClient.post()
                             .uri(roleAssignmentUrl)
@@ -124,7 +124,7 @@ System.out.println("Token (first 20 chars): " + newToken.substring(0, 20));
             if (method == HttpMethod.PATCH){
                 try{
                     JsonNode root = objectMapper.readTree(body);
-                    ((ObjectNode) root).remove(List.of("role"));
+                    ((ObjectNode) root).remove(List.of("role","personalIdentityCode", "dateOfBirth", "introduction", "gender", "pet"));
                     filteredBody = objectMapper.writeValueAsString(root);
                 } catch (Exception e) {
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -174,8 +174,13 @@ System.out.println("Token (first 20 chars): " + newToken.substring(0, 20));
                                     String userIdStr = json.has("id") ? json.get("id").asText() : null;
                                     String role = json.has("role") ? json.get("role").asText().toUpperCase() : null;
                                     if (userIdStr != null && !userIdStr.isBlank()) {
-                                        UUID userId = UUID.fromString(userIdStr);
-                                        userService.updateUser(userId, role);
+                                        try {
+                                            UUID userId = UUID.fromString(userIdStr);
+                                            userService.updateUser(json);
+                                            log.info("User updated successfully: id={}, role={}", userId, role);
+                                        } catch (IllegalArgumentException e) {
+                                            log.error("Invalid UUID format for id={}", userIdStr, e);
+                                        }
                                     }
                             } else if (method == HttpMethod.DELETE) {
                                 String[] parts = requestPath.split("/");

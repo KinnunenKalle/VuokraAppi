@@ -4,7 +4,7 @@ import java.util.List;
 
 public class StatisticsRequest {
     private String type;
-    private List<String> postalCodes;
+    private List<String> zipCodes;
 
     public String getType() {
         return type;
@@ -14,11 +14,11 @@ public class StatisticsRequest {
         this.type = type;
     }
 
-    public List<String> getPostalCodes() {
-        return postalCodes;
+    public List<String> getZipCodes() {
+        return zipCodes;
     }
 
-    public void setPostalCodes(List<String> postalCodes) {
-        this.postalCodes = postalCodes;
+    public void setZipCodes(List<String> zipCodes) {
+        this.zipCodes = zipCodes;
     }
 }

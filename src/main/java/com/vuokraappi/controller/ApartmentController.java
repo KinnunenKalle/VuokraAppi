@@ -153,9 +153,9 @@ public class ApartmentController {
         List<String> reqTypes = request.getTypes() == null || request.getTypes().isEmpty()
                 ? List.of("yksiö", "kaksio", "kolmio")
                 : request.getTypes();
-        List<String> reqPostalCodes = request.getPostalCodes();
-        if (reqPostalCodes == null || reqPostalCodes.isEmpty())
-            return ResponseEntity.badRequest().body(Map.of("error", "postalCodes puuttuu tai on tyhjä"));
+        List<String> reqZipCodes = request.getZipCodes();
+        if (reqZipCodes == null || reqZipCodes.isEmpty())
+            return ResponseEntity.badRequest().body(Map.of("error", "zipCodes puuttuu tai on tyhjä"));
 
         String url = "https://pxdata.stat.fi:443/PxWeb/api/v1/fi/StatFin/asvu/statfin_asvu_pxt_13eb.px";
 
@@ -181,18 +181,18 @@ public class ApartmentController {
             String latestQuarter = validQuarters.get(validQuarters.size() - 1);
 
             // 3) sallitut postinumerot (metadatasta)
-            List<String> validPostals = new ArrayList<>();
+            List<String> validzips = new ArrayList<>();
             for (JsonNode v : variables) {
                 if ("Postinumero".equals(v.path("code").asText())) {
-                    for (JsonNode x : v.path("values")) validPostals.add(x.asText());
+                    for (JsonNode x : v.path("values")) validzips.add(x.asText());
                     break;
                 }
             }
-            List<String> filteredPostals = reqPostalCodes.stream()
-                    .filter(validPostals::contains)
+            List<String> filteredZips = reqZipCodes.stream()
+                    .filter(validzips::contains)
                     .distinct()
                     .toList();
-            if (filteredPostals.isEmpty())
+            if (filteredZips.isEmpty())
                 return ResponseEntity.badRequest().body(Map.of("error", "Yhtään annetuista postinumeroista ei löytynyt datasetistä"));
 
             // 4) käännä pyydetyt tyypit koodeiksi (metadatan Huoneluku on esim. "01","02","03")
@@ -221,7 +221,7 @@ public class ApartmentController {
             Map<String, Object> query = Map.of(
                     "query", List.of(
                             Map.of("code", "Vuosineljännes", "selection", Map.of("filter", "item", "values", List.of(latestQuarter))),
-                            Map.of("code", "Postinumero", "selection", Map.of("filter", "item", "values", filteredPostals)),
+                            Map.of("code", "Postinumero", "selection", Map.of("filter", "item", "values", filteredZips)),
                             Map.of("code", "Huoneluku", "selection", Map.of("filter", "item", "values", requestedRoomCodes)),
                             Map.of("code", "Tiedot", "selection", Map.of("filter", "item", "values", List.of("keskivuokra")))
                     ),
@@ -236,7 +236,7 @@ public class ApartmentController {
             JsonNode root = mapper.readTree(resp.getBody());
 
             // 6) rakenna järjestetyt avain-taulukot käyttäen category/index -numeroita
-            JsonNode postalIndexNode = root.at("/dimension/Postinumero/category/index"); // esim { "00100": 0, "00200": 1, ... }
+            JsonNode zipIndexNode = root.at("/dimension/Postinumero/category/index"); // esim { "00100": 0, "00200": 1, ... }
             JsonNode roomIndexNode = root.at("/dimension/Huoneluku/category/index");     // esim { "01": 0, "02": 1, ... }
 
             // koot ja dim-id
@@ -258,11 +258,11 @@ public class ApartmentController {
                         .body(Map.of("error", "Dimensionit Postinumero tai Huoneluku puuttuvat vastauksesta"));
 
             // rakenna järjestetyt avain-taulukot (index -> key)
-            int postalSize = sizes[postDimPos];
-            String[] postalKeysOrdered = new String[postalSize];
-            postalIndexNode.fieldNames().forEachRemaining(key -> {
-                int idx = postalIndexNode.path(key).asInt();
-                if (idx >= 0 && idx < postalKeysOrdered.length) postalKeysOrdered[idx] = key;
+            int zipSize = sizes[postDimPos];
+            String[] zipKeysOrdered = new String[zipSize];
+            zipIndexNode.fieldNames().forEachRemaining(key -> {
+                int idx = zipIndexNode.path(key).asInt();
+                if (idx >= 0 && idx < zipKeysOrdered.length) zipKeysOrdered[idx] = key;
             });
 
             int roomSize = sizes[roomDimPos];
@@ -299,14 +299,14 @@ public class ApartmentController {
                     else coords[i] = (int) ((flat / strides[i]) % sizes[i]);
                 }
 
-                int postalCoord = coords[postDimPos];
+                int zipCoord = coords[postDimPos];
                 int roomCoord = coords[roomDimPos];
 
                 // suodatetaan vain pyydetyt postinumerot
-                String postalKey = postalCoord >= 0 && postalCoord < postalKeysOrdered.length ? postalKeysOrdered[postalCoord] : null;
+                String zipKey = zipCoord >= 0 && zipCoord < zipKeysOrdered.length ? zipKeysOrdered[zipCoord] : null;
                 String roomKey = roomCoord >= 0 && roomCoord < roomKeysOrdered.length ? roomKeysOrdered[roomCoord] : null;
-                if (postalKey == null || roomKey == null) continue;
-                if (!filteredPostals.contains(postalKey)) continue;
+                if (zipKey == null || roomKey == null) continue;
+                if (!filteredZips.contains(zipKey)) continue;
 
                 String typeName = roomCodeToTypeName.get(roomKey);
                 if (typeName == null) continue; // emme pyytäneet tätä huonelukua
@@ -314,7 +314,7 @@ public class ApartmentController {
                 JsonNode valNode = valueArray.get(flat);
                 Double rent = (valNode == null || valNode.isNull()) ? null : valNode.asDouble();
             
-                results.get(typeName).put(postalKey, rent);
+                results.get(typeName).put(zipKey, rent);
             }
 
             Map<String, Object> responseBody = Map.of("quarter", latestQuarter, "vuokrat", results);

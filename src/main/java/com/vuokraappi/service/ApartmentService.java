@@ -35,8 +35,8 @@ public class ApartmentService {
             if (request.getCity() != null && !request.getCity().isEmpty()) {
                 predicates.add(cb.like(cb.lower(root.get("city")), "%" + request.getCity().toLowerCase() + "%"));
             }
-            if (request.getPostalCode() != null && !request.getPostalCode().isEmpty()) {
-                predicates.add(cb.equal(root.get("postalCode"), request.getPostalCode()));
+            if (request.getZipCode() != null && !request.getZipCode().isEmpty()) {
+                predicates.add(cb.equal(root.get("postalCode"), request.getZipCode()));
             }
             if (request.getStreetAddress() != null && !request.getStreetAddress().isEmpty()) {
                 predicates.add(cb.like(cb.lower(root.get("streetAddress")), "%" + request.getStreetAddress().toLowerCase() + "%"));

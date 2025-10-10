@@ -47,7 +47,7 @@ public class User {
     public void setLandlord(Landlord landlord) { this.landlord = landlord; }
 
     public String getPersonalIdentityCode() { return personalIdentityCode; }
-    public void getPersonalIdentityCode(String personalIdentityCode) { this.personalIdentityCode = personalIdentityCode; }
+    public void setPersonalIdentityCode(String personalIdentityCode) { this.personalIdentityCode = personalIdentityCode; }
 
     public Date getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(Date dateOfBirth) { this.dateOfBirth = dateOfBirth; }
