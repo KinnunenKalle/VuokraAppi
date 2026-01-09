@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Platform,
   Pressable,
+  Linking,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Animated, {
@@ -19,9 +21,8 @@ import Logo from "./Logo";
 import { useAuth } from "./AuthContext";
 
 export default function TenantHomepage({ navigation }) {
-  const { userProfile } = useAuth();
+  const { userProfile, accessToken } = useAuth();
 
-  // Näytetään "Etsi asuntoa" vain, jos profiili on täytetty
   const hasProfile = userProfile?.dateOfBirth && userProfile?.gender;
 
   const scale = useSharedValue(1);
@@ -36,6 +37,46 @@ export default function TenantHomepage({ navigation }) {
     });
   };
 
+  // Vahvan tunnistautumisen käsittelijä
+  const handleStrongAuth = async () => {
+  try {
+    if (!accessToken) {
+      Alert.alert("Kirjaudu ensin", "Access token puuttuu");
+      return;
+    }
+
+    const response = await fetch(
+      "https://vuokraappi-api-gw-dev.azure-api.net/users/strongAuthentication",
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+        redirect: "manual", // ✅ TÄRKEÄ
+      }
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Backend virhe:", text);
+      throw new Error("Vahvan tunnistautumisen aloitus epäonnistui");
+    }
+
+    const data = await response.json();
+
+    if (!data.authUrl) {
+      throw new Error("Backend ei palauttanut authUrlia");
+    }
+
+    console.log("Avaan Signicat URL:", data.authUrl);
+    await Linking.openURL(data.authUrl);
+
+  } catch (err) {
+    console.error("Tunnistautumisvirhe:", err);
+    Alert.alert("Tunnistautumisvirhe", err.message);
+  }
+};
   return (
     <KeyboardAvoidingView
       style={styles.keyboardContainer}
@@ -48,6 +89,7 @@ export default function TenantHomepage({ navigation }) {
         </View>
 
         <View style={styles.cardContainer}>
+          {/* Profiili */}
           <Pressable onPress={onPressNavigate}>
             <Animated.View style={[styles.card, animatedCardStyle]}>
               <View style={styles.cardContent}>
@@ -57,6 +99,7 @@ export default function TenantHomepage({ navigation }) {
             </Animated.View>
           </Pressable>
 
+          {/* Asunnon haku */}
           {!hasProfile && (
             <Text style={styles.warningText}>
               Täytä profiiliasi, ennen kuin voit etsiä asuntoa.
@@ -64,7 +107,7 @@ export default function TenantHomepage({ navigation }) {
           )}
 
           {hasProfile && (
-            <Pressable onPress={() => navigation.navigate("Apartments")}>
+            <Pressable onPress={() => navigation.navigate("SwipeScreen")}>
               <Animated.View style={[styles.card, animatedCardStyle]}>
                 <View style={styles.cardContent}>
                   <Feather name="home" size={22} color="#0f172a" />
@@ -73,6 +116,25 @@ export default function TenantHomepage({ navigation }) {
               </Animated.View>
             </Pressable>
           )}
+
+          {/* --- OHJE + VAHVA TUNNISTAUTUMINEN --- */}
+          <View style={styles.authContainer}>
+            <Text style={styles.authInfoText}>
+              Jos haluat kaikki sovelluksen toiminnot käyttöön, tee vahva
+              tunnistautuminen (esim. viestittely vuokranantajan kanssa).
+            </Text>
+
+            <Pressable onPress={handleStrongAuth}>
+              <Animated.View style={[styles.card, animatedCardStyle]}>
+                <View style={styles.cardContent}>
+                  <Feather name="shield" size={22} color="#0f172a" />
+                  <Text style={styles.cardText}>
+                    Tee vahva tunnistautuminen
+                  </Text>
+                </View>
+              </Animated.View>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -106,4 +168,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   warningText: { color: "red", marginTop: 8, fontSize: 14 },
+  authContainer: { marginTop: 24 },
+  authInfoText: {
+    fontSize: 14,
+    color: "#475569",
+    textAlign: "center",
+    marginBottom: 12,
+    lineHeight: 20,
+  },
 });

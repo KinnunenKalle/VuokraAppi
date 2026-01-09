@@ -19,7 +19,7 @@ import MapScreen from "./components/MapScreen.js";
 import TenantHomepage from "./components/TenantHomepage.js";
 import TenantDrawer from "./components/TenantDrawer.js";
 import Profile from "./components/Profile.js";
-
+import SwipeScreen from "./components/SwipeScreen.js";
 // AuthContext-provideri tokenin ja käyttäjän hallintaan
 import { AuthProvider } from "./components/AuthContext";
 
@@ -36,7 +36,7 @@ export default function App() {
             <Stack.Screen name="Login" component={Login} />
 
             <Stack.Screen name="Register" component={RegisterScreen} />
-
+            <Stack.Screen name="SwipeScreen" component={SwipeScreen} />
             {/* Sovelluksen pääsisältö drawerin sisällä */}
             <Stack.Screen name="MainApp" component={DrawerNavigator} />
 
