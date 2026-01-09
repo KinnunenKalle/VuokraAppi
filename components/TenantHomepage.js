@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -17,11 +17,14 @@ import Animated, {
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
+import { makeRedirectUri } from "expo-auth-session"; // ← TÄMÄ PUUTUI
 import Logo from "./Logo";
+import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "./AuthContext";
 
 export default function TenantHomepage({ navigation }) {
-  const { userProfile, accessToken } = useAuth();
+  const { userProfile, accessToken, userId } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const hasProfile = userProfile?.dateOfBirth && userProfile?.gender;
 
@@ -39,44 +42,34 @@ export default function TenantHomepage({ navigation }) {
 
   // Vahvan tunnistautumisen käsittelijä
   const handleStrongAuth = async () => {
-  try {
-    if (!accessToken) {
-      Alert.alert("Kirjaudu ensin", "Access token puuttuu");
-      return;
-    }
+    try {
+      // 1️⃣ Luo deep link, johon Signicat ohjaa tunnistautumisen jälkeen
+      const redirectUri = makeRedirectUri({ useProxy: true });
+      console.log('Redirect URI:', redirectUri);
 
-    const response = await fetch(
-      "https://vuokraappi-api-gw-dev.azure-api.net/users/strongAuthentication",
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-        },
-        redirect: "manual", // ✅ TÄRKEÄ
+      // 2️⃣ Avaamme browserin OAuth2 Signicat -endpointiin
+      const result = await WebBrowser.openAuthSessionAsync(
+        'https://vuokraappi-api-gw-dev.azure-api.net/oauth2/authorization/signicat',
+        redirectUri
+      );
+
+      console.log('WebBrowser result:', result);
+
+      if (result.type === 'success') {
+        // result.url sisältää takaisin ohjatun URL:n, josta voi purkaa tokenin
+        Alert.alert('Onnistui!', 'Vahva tunnistautuminen suoritettu');
+        // Tässä vaiheessa pitäisi käsitellä token deep linkistä
+        // esim. parseTokenFromUrl(result.url)
+      } else if (result.type === 'cancel') {
+        Alert.alert('Peruutettu', 'Tunnistautuminen peruutettiin');
       }
-    );
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Backend virhe:", text);
-      throw new Error("Vahvan tunnistautumisen aloitus epäonnistui");
+    } catch (err) {
+      console.error('Tunnistautumisvirhe:', err);
+      Alert.alert('Tunnistautumisvirhe', err.message);
     }
+  };
 
-    const data = await response.json();
 
-    if (!data.authUrl) {
-      throw new Error("Backend ei palauttanut authUrlia");
-    }
-
-    console.log("Avaan Signicat URL:", data.authUrl);
-    await Linking.openURL(data.authUrl);
-
-  } catch (err) {
-    console.error("Tunnistautumisvirhe:", err);
-    Alert.alert("Tunnistautumisvirhe", err.message);
-  }
-};
   return (
     <KeyboardAvoidingView
       style={styles.keyboardContainer}
@@ -124,8 +117,21 @@ export default function TenantHomepage({ navigation }) {
               tunnistautuminen (esim. viestittely vuokranantajan kanssa).
             </Text>
 
-            <Pressable onPress={handleStrongAuth}>
-              <Animated.View style={[styles.card, animatedCardStyle]}>
+            <Text style={[styles.authInfoText, { color: "#dc143c" }]}>
+              Huom: iOS saattaa näyttää varmistuksen “Saako käyttää sisäänkirjautumiseen”. Tämä on normaalia – kyse on vain tunnistautumisesta.
+            </Text>
+
+            <Pressable
+              onPress={handleStrongAuth}
+              disabled={!accessToken || !userId}
+            >
+              <Animated.View
+                style={[
+                  styles.card,
+                  animatedCardStyle,
+                  (!accessToken || !userId) && { opacity: 0.5 },
+                ]}
+              >
                 <View style={styles.cardContent}>
                   <Feather name="shield" size={22} color="#0f172a" />
                   <Text style={styles.cardText}>
