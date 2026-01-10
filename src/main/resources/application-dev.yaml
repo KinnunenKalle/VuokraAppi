@@ -1,0 +1,78 @@
+# Azure SQL -yhteys
+spring:
+  datasource:
+    url: jdbc:sqlserver://vuokraappi.database.windows.net:1433;database=Vuokraappidev
+    username: sqladmin@vuokraappi
+    password: G?t8wRoh7TRup4!tH9#r
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      connection-test-query: ""
+      validation-timeout: 5000
+      keepalive-time: 0
+      idle-timeout: 60000
+      minimum-idle: 0
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.SQLServerDialect
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          graph:
+            client-id: 3f790413-a01c-4d36-9823-dbc0ed63bc67
+            client-secret: Fta8Q~gpDnpKcBfhGwD0n6sPt6fuHAHTDtpiZb3Q
+            scope: https://graph.microsoft.com/.default
+            authorization-grant-type: client_credentials
+            provider: graph
+          
+          signicat:
+            uri: https://ioxx-oy.sandbox.signicat.com/auth/open/connect/authorize
+            client-id: sandbox-brave-knee-874
+            client-secret: tjqSugmhoxYgOQuBAaIvTdPW04TRbXbw9yNsYztUnEyRtajB
+            scope:
+              - openid
+              - profile
+              - ftn-extra
+              - nin
+            # redirect-uri: "{baseUrl}/users/strongAuthentication/result"
+            # redirect-uri: https://vuokraappi-api-gw-dev.azure-api.net/users/strongAuthentication/result
+            client-name: Signicat
+            redirect-uri: https://vuokraappi-api-gw-dev.azure-api.net/login/oauth2/code/signicat
+            authorization-grant-type: authorization_code
+        
+        provider:
+          graph:
+            token-uri: https://login.microsoftonline.com/95e94f96-fda6-4111-953a-439ab54fce6e/oauth2/v2.0/token
+          
+          signicat:
+            authorization-uri: https://ioxx-oy.sandbox.signicat.com/auth/open/connect/authorize
+            token-uri: https://ioxx-oy.sandbox.signicat.com/auth/open/connect/token
+            user-info-uri: https://ioxx-oy.sandbox.signicat.com/auth/open/connect/userinfo
+            jwk-set-uri: https://ioxx-oy.sandbox.signicat.com/auth/open/connect/jwks
+            user-name-attribute: sub
+            #authorization-uri: https://login.signicat.com/oidc/authorize
+            #token-uri: https://login.signicat.com/oidc/token
+            #user-info-uri: https://login.signicat.com/oidc/userinfo
+            #user-name-attribute: sub
+
+# Azure Storage
+azure:
+  storage:
+    connection-string: DefaultEndpointsProtocol=https;AccountName=vuokraappiblobstoragedev;AccountKey=4DrPHvGnL9deKfWxP+eIdhVktAfP3lXX8ob20v5DV0LfAq4VQgw6Dv36NIHtbzLjmkhjlQo+O3lq+AStcXRJOA==;EndpointSuffix=core.windows.net
+    container-name: apartments
+  keyvault:
+    url: https://your-keyvault-name.vault.azure.net/
+    secret-name: signicat-decryption-key
+
+# Kommentoitu SQL Server -asetukset
+# encrypt=true;
+# trustServerCertificate=false;
+# hostNameInCertificate=*.database.windows.net;
+# loginTimeou
