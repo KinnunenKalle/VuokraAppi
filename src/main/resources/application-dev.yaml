@@ -46,21 +46,22 @@ spring:
             client-name: Signicat
             redirect-uri: https://vuokraappi-api-gw-dev.azure-api.net/login/oauth2/code/signicat
             authorization-grant-type: authorization_code
-        
+            secret: tjqSugmhoxYgOQuBAaIvTdPW04TRbXbw9yNsYztUnEyRtajB
         provider:
           graph:
             token-uri: https://login.microsoftonline.com/95e94f96-fda6-4111-953a-439ab54fce6e/oauth2/v2.0/token
           
           signicat:
-            authorization-uri: https://ioxx-oy.sandbox.signicat.com/auth/open/connect/authorize
-            token-uri: https://ioxx-oy.sandbox.signicat.com/auth/open/connect/token
-            user-info-uri: https://ioxx-oy.sandbox.signicat.com/auth/open/connect/userinfo
-            jwk-set-uri: https://ioxx-oy.sandbox.signicat.com/auth/open/connect/jwks
+            issuer-uri: https://ioxx-oy.sandbox.signicat.com/auth/open
             user-name-attribute: sub
             #authorization-uri: https://login.signicat.com/oidc/authorize
             #token-uri: https://login.signicat.com/oidc/token
             #user-info-uri: https://login.signicat.com/oidc/userinfo
             #user-name-attribute: sub
+            
+signicat:
+  encryption:
+    private-key-jwk: '{"kty": "RSA","kid": "3BfGYh49-X_7_3jdvtXbC82CL9cAGwtaM-Bu9VKLz7A","use": "enc","alg": "RSA-OAEP","e": "AQAB","n": "z6zEgPkLzm6cRa2FUE8Sv4EoziyKlroxaeUpecEZTUNIEKcLxhx9bxSthsIRwk636i0fqqg0h1t5di7I8O_tQUQS9CVisV8JnWQgAs88je517DsAjGAQ2F7axdREGRG6WPAUqsrhJxX2GntV-rPafH18Uc26DPB12fe8xZVjo3KqfAW2X-siAsMtzjMknU7tzh1XuwX6ACG7fy9KkY_SdhdRE5G5LOXQZJlEIMUkbW_JKPFbdc6CEd2yy9Irev82fLOK-zZsH7DEndi-OSfBOeT__W0vGLykNtbZFBmQP71_jtHXAFiSxw6SO5OVDHzy_Dky6Ox4ILwAWvPqBY4-QQ","d": "MUmtsXZqCOpTiG3wT-kUaAL9bkE_-xnhlGJg_5aGrMGlHt6merRUSMK9lFgG4vjPyXJAK76UCPP61cOwyQ4IXw8K-IrO643EuGgE-OW6V20a65_tN2OtW8zXW1BPgSul8Gm6XfacjSw3Jn3TIBcDabxWfwu2dk-ziLG1Sad06FtnDGY5hYiCXy9B90rnKG6Qn6oFsB8uuk9tBYotl4oZYDnRIRFJltLVu4OuMW1LEcQ6r1Q3_ywXrCH8pxfGqd0hd0A-FXLst_SnRb1yADocV2RR9bYCZYVqzSR7ewzj-jqm0IeC_lLB5xGfj9pByj1bdF9HoEA71tqksWqqLQfKYQ","p": "5sr6SKCu95As05wj9t-MGcdhXQO1Q_TguZvTTLglO5FAMSkuvDRB1_tFdb-HATHA5IUT6S1s--mr7MUDf5TudIy17HivaKyyby0aXpx0eRWK60sL54GCLcW0GXE6YUa6KiEbXQu3nepLa7aRZxx6lMcNqlJSNRbQxec3yawHlWU","q": "5ltnsq4u5s6ZGTUKXYP-yWPhYmdxYmA2MEDK57u609GppKhY3yVmxHY1Mph8o9Mdlmb8TSD6JiH6hmEPbKMU4h_j_MIKrle_gb2xcO6hXYOBdgAqLIHeMHudhVjNGEYpVhmzp0C8_6EXLby1QcdWUBcriJiUd4Y9mHa1QNgpFa0","dp": "cbU1pMzOB5jYDRYTvhEbtKO_-5TVHPssMSZt75GWfoesycvRg9Z3TlM1QLMxb8w0jiJm0e6YkHDrTMcwVw5ogbHF_BDl0zuq2g2tvUl2NSYBALZD0jbDjYunlRVtPvoaxKD1G12nhL0nlZUohFXKqzx7JhxS9mccSzUFDm6ceeU","dq": "Jsl_RXPUy-I_nyHyM9rU3N4nhiU6z0C5_xf50lkm1SG5edMq26_1hOEOhg1s9zzF_5wpoWcLF76i61uOeFFhY83Q2q9lkwONaHAjX4ueuhs5gj_22fWoDuvRkzFnn025Chlbya655CUgvP_IWWISI3wzRVXDsfh1iKV8UYXULSU","qi": "y6Uv7wj62hFlxbL39a3HfY8w-_9FJmqGd6uRvQeotP3sMFmpGhnr_2eWKLfadaRefGSEJk9YEv0YcvF1nl6t5uGdbMEYvB5HiwV9mu8dD3V8-WA5J1xTnBO5tlJITD3lCz6vu_SBhN51rRI_UXQRNDbILexPXRc-8b0cPhUoQTU"}'
 
 # Azure Storage
 azure:
@@ -76,3 +77,9 @@ azure:
 # trustServerCertificate=false;
 # hostNameInCertificate=*.database.windows.net;
 # loginTimeou
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2.jwt: TRACE
+    org.springframework.security.oauth2: TRACE

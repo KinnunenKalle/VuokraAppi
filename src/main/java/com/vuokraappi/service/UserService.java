@@ -9,34 +9,37 @@ import com.vuokraappi.repository.UserRepository;
 import com.vuokraappi.repository.TenantRepository;
 import com.vuokraappi.repository.LandlordRepository;
 import com.vuokraappi.repository.ApartmentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Date;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 
 @Service
 public class UserService {
 
-    @Autowired
     private UserRepository userRepository;
-
-    @Autowired
     private TenantRepository tenantRepository;
-
-    @Autowired
     private LandlordRepository landlordRepository;
-
-    @Autowired
     private ApartmentRepository apartmentRepository;
+    private final ObjectMapper objectMapper;
 
-    // CREATE
+    // Constructor injection
+    public UserService(
+        UserRepository userRepository,
+        TenantRepository tenantRepository,
+        LandlordRepository landlordRepository,
+        ObjectMapper objectMapper  // Lisää tämä
+    ) {
+        this.userRepository = userRepository;
+        this.tenantRepository = tenantRepository;
+        this.landlordRepository = landlordRepository;
+        this.objectMapper = objectMapper;  // Lisää tämä
+    }
+
     @Transactional
     public User provisionUser(UUID id, String role) {
         if (userRepository.existsById(id)) {
@@ -73,68 +76,52 @@ public class UserService {
     // UPDATE
     public Optional<User> updateUser(JsonNode json) {
         String userIdStr = json.has("id") ? json.get("id").asText() : null;
-        String personalIdentityCode = json.has("personalIdentityCode") ? json.get("personalIdentityCode").asText() : null;
-        String introduction = json.has("introduction") ? json.get("introduction").asText() : null;
-        String role = json.has("role") ? json.get("role").asText().toUpperCase() : null;
         UUID userId = UUID.fromString(userIdStr);
-        AtomicReference<Date> dateOfBirthRef = new AtomicReference<>();
-
-        if (json.has("dateOfBirth") && !json.get("dateOfBirth").isNull()) {
-            try {
-                String dateStr = json.get("dateOfBirth").asText();
-                LocalDate localDate = LocalDate.parse(dateStr); // odottaa "yyyy-MM-dd"
-                dateOfBirthRef.set(java.sql.Date.valueOf(localDate));
-            } catch (DateTimeParseException e) {
-//                log.error("Invalid dateOfBirth format: {}", json.get("dateOfBirth").asText(), e);
-            }
-        }
-
-        Date dateOfBirth = dateOfBirthRef.get();
-
-        AtomicReference<User.Gender> genderRef = new AtomicReference<>();
-
-        if (json.has("gender") && !json.get("gender").isNull()) {
-            try {
-                String genderStr = json.get("gender").asText();
-                genderRef.set(User.Gender.valueOf(genderStr.toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                //log.warn("Unknown gender value: {}", json.get("gender").asText());
-            }
-        }
+        String role = json.has("role") ? json.get("role").asText().toUpperCase() : null;
 
         return userRepository.findById(userId).map(user -> {
-            user.setRole(role);
-            if (personalIdentityCode != null) user.setPersonalIdentityCode(personalIdentityCode);
-            if (dateOfBirth != null) user.setDateOfBirth(dateOfBirth);
-            user.setGender(genderRef.get());
-            if (introduction != null) user.setIntroduction(introduction);
-            switch (role.toUpperCase()) {
-                case "TENANT" -> {
-                    Tenant tenant = tenantRepository.findById(userId).orElseGet(() -> {
-                        Tenant newTenant = new Tenant();
-                        newTenant.setId(userId);
-                        newTenant.setUser(user);
-                        return newTenant;
-                    });
-                    tenantRepository.save(tenant);
-                    user.setTenant(tenant);
-                    user.setLandlord(null); // remove other role
+            try {
+            // Päivitä kaikki kentät automaattisesti
+                objectMapper.readerForUpdating(user).readValue(json);
+            
+                // Käsittele rooli erikseen
+                if (role != null) {
+                    user.setRole(role);
+                    handleRoleUpdate(user, role);
                 }
-                case "LANDLORD" -> {
-                    Landlord landlord = landlordRepository.findById(userId).orElseGet(() -> {
-                        Landlord newLandlord = new Landlord();
-                        newLandlord.setId(userId);
-                        newLandlord.setUser(user);
-                        return newLandlord;
-                    });
-                    landlordRepository.save(landlord);
-                    user.setLandlord(landlord);
-                    user.setTenant(null); // remove other role
-                }
+            
+                return userRepository.save(user);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to update user", e);
             }
-
-            return userRepository.save(user);
         });
+    }
+
+    private void handleRoleUpdate(User user, String role) {
+        switch (role.toUpperCase()) {
+            case "TENANT" -> {
+                Tenant tenant = tenantRepository.findById(user.getId()).orElseGet(() -> {
+                    Tenant newTenant = new Tenant();
+                    newTenant.setId(user.getId());
+                    newTenant.setUser(user);
+                    return newTenant;
+                });
+                tenantRepository.save(tenant);
+                user.setTenant(tenant);
+                user.setLandlord(null);
+            }
+            case "LANDLORD" -> {
+                Landlord landlord = landlordRepository.findById(user.getId()).orElseGet(() -> {
+                    Landlord newLandlord = new Landlord();
+                    newLandlord.setId(user.getId());
+                    newLandlord.setUser(user);
+                    return newLandlord;
+                });
+                landlordRepository.save(landlord);
+                user.setLandlord(landlord);
+                user.setTenant(null);
+            }
+        }
     }
 
     // DELETE
