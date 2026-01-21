@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
-import { makeRedirectUri } from "expo-auth-session"; // ← TÄMÄ PUUTUI
+import { makeRedirectUri } from "expo-auth-session"; 
 import Logo from "./Logo";
 import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "./AuthContext";
@@ -42,32 +42,50 @@ export default function TenantHomepage({ navigation }) {
 
   // Vahvan tunnistautumisen käsittelijä
   const handleStrongAuth = async () => {
-    try {
-      // 1️⃣ Luo deep link, johon Signicat ohjaa tunnistautumisen jälkeen
-      const redirectUri = makeRedirectUri({ useProxy: true });
-      console.log('Redirect URI:', redirectUri);
+  try {
+    setLoading(true);
+    
+    //  TÄRKEÄ: Tyhjennä aikaisempi sessio
+    await WebBrowser.maybeCompleteAuthSession();
+    
+    const redirectUri = makeRedirectUri({ useProxy: true });
+    
 
-      // 2️⃣ Avaamme browserin OAuth2 Signicat -endpointiin
-      const result = await WebBrowser.openAuthSessionAsync(
-        'https://vuokraappi-api-gw-dev.azure-api.net/oauth2/authorization/signicat',
-        redirectUri
-      );
+    const authUrl = 'https://vuokraappi-api-gw-dev.azure-api.net/oauth2/authorization/signicat';
 
-      console.log('WebBrowser result:', result);
-
-      if (result.type === 'success') {
-        // result.url sisältää takaisin ohjatun URL:n, josta voi purkaa tokenin
-        Alert.alert('Onnistui!', 'Vahva tunnistautuminen suoritettu');
-        // Tässä vaiheessa pitäisi käsitellä token deep linkistä
-        // esim. parseTokenFromUrl(result.url)
-      } else if (result.type === 'cancel') {
-        Alert.alert('Peruutettu', 'Tunnistautuminen peruutettiin');
+    //  preferEphemeralSession: true pakottaa uuden session
+    const result = await WebBrowser.openAuthSessionAsync(
+      authUrl, 
+      redirectUri,
+      { 
+        preferEphemeralSession: true  // Ei jaa evästeitä = uusi sessio aina
       }
-    } catch (err) {
-      console.error('Tunnistautumisvirhe:', err);
-      Alert.alert('Tunnistautumisvirhe', err.message);
+    );
+    
+    console.log(' Result:', JSON.stringify(result, null, 2));
+
+    if (result.type === 'success') {
+      console.log(' Success URL:', result.url);
+      
+      // Käsittele callback
+      const url = new URL(result.url);
+      const code = url.searchParams.get('code');
+      
+      if (code) {
+        Alert.alert('Onnistui!', `Code: ${code.substring(0, 20)}...`);
+        // Lähetä code backendille
+      }
+    } else if (result.type === 'cancel') {
+      console.log(' Peruutettu tai virhe');
+      Alert.alert('Info', 'Tunnistautuminen keskeytetty');
     }
-  };
+  } catch (err) {
+    console.error(' Error:', err);
+    Alert.alert('Virhe', err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   return (
