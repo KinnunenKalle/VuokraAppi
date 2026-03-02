@@ -1,0 +1,849 @@
+openapi: 3.0.3
+info:
+  title: Vuokraappi Backend API
+  description: |
+    REST API for Vuokraappi – a Finnish rental apartment platform serving both
+    tenants and landlords. User identities are managed via Microsoft Entra ID;
+    the backend stores a local user record and a role-specific profile
+    (tenant or landlord) for each registered user.
+  version: 0.0.1-SNAPSHOT
+  contact:
+    name: Vuokraappi
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api.dev.vuokraappi.fi
+    description: Development environment (Azure)
+
+tags:
+  - name: Users
+    description: User registration and management
+  - name: Apartments
+    description: Apartment CRUD operations
+  - name: Listings
+    description: AI-powered rental listing generation
+
+paths:
+  /users:
+    post:
+      tags:
+        - Users
+      summary: Register a new user
+      description: |
+        Registers a new user in the system.  
+        The supplied UUID must already exist in Microsoft Entra ID.  
+        The endpoint:
+          1. Verifies the user exists in Entra ID via Graph API.
+          2. Updates the user's role in Entra ID (`onPremisesExtensionAttributes.extensionAttribute1`).
+          3. Persists the user, and creates either a **Tenant** or a **Landlord** profile in the database.
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+            examples:
+              tenant:
+                summary: Register a tenant
+                value:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  role: "tenant"
+              landlord:
+                summary: Register a landlord
+                value:
+                  id: "660e8400-e29b-41d4-a716-446655440001"
+                  role: "landlord"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              example:
+                id: "550e8400-e29b-41d4-a716-446655440000"
+                role: "TENANT"
+                created_at: "2024-02-16T10:30:00"
+                is_active: true
+        '400':
+          description: Validation error – missing or invalid fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 400
+                message: "Validation failed"
+                timestamp: "2024-02-16T10:30:00"
+                errors:
+                  role: "Role must be either 'tenant' or 'landlord'"
+                  id: "User ID is required"
+        '409':
+          description: User with the given ID already exists in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 409
+                message: "User with ID 550e8400-e29b-41d4-a716-446655440000 already exists"
+                timestamp: "2024-02-16T10:30:00"
+        '502':
+          description: Microsoft Entra ID (Graph API) communication failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 502
+                message: "Failed to communicate with Microsoft Entra ID: ..."
+                timestamp: "2024-02-16T10:30:00"
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}:
+    delete:
+      tags:
+        - Users
+      summary: Delete a user
+      description: |
+        Permanently deletes a user from both the local database and Microsoft Entra ID.  
+        Cascade deletes the associated Tenant or Landlord profile automatically.  
+        If the user is not found in Entra ID during deletion, the operation still succeeds
+        (idempotent Entra ID removal).
+      operationId: deleteUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: UUID of the user to delete
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '204':
+          description: User deleted successfully (no content)
+        '404':
+          description: User not found in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 404
+                message: "User with ID 550e8400-e29b-41d4-a716-446655440000 not found"
+                timestamp: "2024-02-16T10:30:00"
+        '502':
+          description: Microsoft Entra ID (Graph API) communication failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 502
+                message: "Failed to communicate with Microsoft Entra ID: ..."
+                timestamp: "2024-02-16T10:30:00"
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}/apartments:
+    get:
+      tags:
+        - Users
+      summary: Get apartments by user ID
+      description: |
+        Returns all apartments owned by the given user.  
+        If the user exists but is not a landlord, an empty list is returned.
+      operationId: getUserApartments
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: UUID of the user (landlord)
+          schema:
+            type: string
+            format: uuid
+          example: "660e8400-e29b-41d4-a716-446655440001"
+      responses:
+        '200':
+          description: List of apartments (empty if the user has none or is not a landlord)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApartmentResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /apartments:
+    get:
+      tags:
+        - Apartments
+      summary: Get all apartments
+      description: Returns a list of all apartments in the system.
+      operationId: getAllApartments
+      responses:
+        '200':
+          description: List of all apartments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApartmentResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Apartments
+      summary: Create a new apartment
+      description: |
+        Creates a new apartment owned by the authenticated user.  
+        The authenticated user must be a landlord – if not, a `403 Forbidden` is returned.
+      operationId: createApartment
+      security:
+        - BearerAuth: []
+        - BasicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApartmentRequest'
+            example:
+              zipcode: "00530"
+              streetAddress: "Fleminginkatu 12"
+              city: "Helsinki"
+              region: "Uusimaa"
+              size: 42.5
+              longitude: 24.9534
+              latitude: 60.1828
+              rent: 1050.00
+      responses:
+        '201':
+          description: Apartment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApartmentResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Authenticated user is not a landlord
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 403
+                message: "Only landlords can create apartments"
+                timestamp: "2024-02-16T10:30:00"
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /apartments/{id}:
+    get:
+      tags:
+        - Apartments
+      summary: Get apartment by ID
+      operationId: getApartmentById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the apartment
+          schema:
+            type: string
+            format: uuid
+          example: "770e8400-e29b-41d4-a716-446655440002"
+      responses:
+        '200':
+          description: Apartment found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApartmentResponse'
+        '404':
+          description: Apartment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 404
+                message: "Apartment not found with id: 770e8400-e29b-41d4-a716-446655440002"
+                timestamp: "2024-02-16T10:30:00"
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags:
+        - Apartments
+      summary: Update an apartment
+      description: |
+        Partially updates an apartment. Only the fields present in the request body are updated.  
+        The authenticated user must be the owner of the apartment.
+      operationId: updateApartment
+      security:
+        - BearerAuth: []
+        - BasicAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the apartment to update
+          schema:
+            type: string
+            format: uuid
+          example: "770e8400-e29b-41d4-a716-446655440002"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApartmentRequest'
+            example:
+              rent: 1100.00
+      responses:
+        '200':
+          description: Apartment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApartmentResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Authenticated user is not the owner of the apartment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 403
+                message: "You can only update your own apartments"
+                timestamp: "2024-02-16T10:30:00"
+        '404':
+          description: Apartment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Apartments
+      summary: Delete an apartment
+      description: |
+        Deletes an apartment. The authenticated user must be the owner of the apartment.
+      operationId: deleteApartment
+      security:
+        - BearerAuth: []
+        - BasicAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the apartment to delete
+          schema:
+            type: string
+            format: uuid
+          example: "770e8400-e29b-41d4-a716-446655440002"
+      responses:
+        '204':
+          description: Apartment deleted successfully (no content)
+        '403':
+          description: Authenticated user is not the owner of the apartment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 403
+                message: "You can only delete your own apartments"
+                timestamp: "2024-02-16T10:30:00"
+        '404':
+          description: Apartment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /listings/generate:
+    post:
+      tags:
+        - Listings
+      summary: Generate an AI-powered rental listing
+      description: |
+        Generates a professional Finnish rental listing text and a data-driven rent
+        suggestion using an AI agent (LangChain4j + OpenAI GPT).
+
+        During generation the agent autonomously calls three tools:
+        - **searchSimilarApartments** – fetches comparable apartments from the internal database
+        - **fetchStatisticsFinland** – fetches official rent statistics from Statistics Finland (StatFin API)
+        - **fetchNeighborhoodInfo** – fetches nearby services via OpenStreetMap (Nominatim + Overpass API)
+
+        The response is a raw JSON string with the structure shown below.
+      operationId: generateListing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateListingRequest'
+            example:
+              zipcode: "00530"
+              city: "Helsinki"
+              street_address: "Fleminginkatu 12"
+              rooms: 2
+              size: 42.5
+              floor: 3
+              build_year: 1965
+              additional_info: "sauna, parveke, hissi"
+      responses:
+        '200':
+          description: Listing and rent suggestion generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateListingResponse'
+              example:
+                listingText: "Viihtyisä kaksio Kalliossa ..."
+                rentSuggestion:
+                  min: 950
+                  max: 1100
+                  recommended: 1025
+                  reasoning: "Tilastokeskuksen mukaan alueen kaksioiden mediaanivuokra on 21.5 €/m² ..."
+        '400':
+          description: Validation error – missing or invalid fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 400
+                message: "Validation failed"
+                timestamp: "2024-02-16T10:30:00"
+                errors:
+                  zipcode: "Postinumeron tulee olla 5 numeroa"
+                  rooms: "Huoneluvun tulee olla vähintään 1"
+        '500':
+          description: Unexpected server error or AI agent failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+
+    # -------------------------------------------------------------------------
+    # Request schemas
+    # -------------------------------------------------------------------------
+    UserRegistrationRequest:
+      type: object
+      required:
+        - id
+        - role
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The user's UUID from Microsoft Entra ID (Object ID)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        role:
+          type: string
+          description: The user's role. Case-insensitive.
+          enum:
+            - tenant
+            - landlord
+          example: "tenant"
+
+    # -------------------------------------------------------------------------
+    # Response schemas
+    # -------------------------------------------------------------------------
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: The user's UUID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        role:
+          $ref: '#/components/schemas/UserRole'
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the user was created
+          example: "2024-02-16T10:30:00"
+        is_active:
+          type: boolean
+          description: Whether the user account is active
+          example: true
+
+    # -------------------------------------------------------------------------
+    # Error schema
+    # -------------------------------------------------------------------------
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Validation failed"
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the error occurred
+          example: "2024-02-16T10:30:00"
+        errors:
+          type: object
+          description: >
+            Field-level validation errors (only present for 400 responses).
+            Keys are field names, values are error messages.
+          additionalProperties:
+            type: string
+          example:
+            role: "Role must be either 'tenant' or 'landlord'"
+
+    # -------------------------------------------------------------------------
+    # Enums
+    # -------------------------------------------------------------------------
+    UserRole:
+      type: string
+      description: The user's role in the platform
+      enum:
+        - TENANT
+        - LANDLORD
+      example: "TENANT"
+
+    # -------------------------------------------------------------------------
+    # Database entity schemas (informational / for documentation purposes)
+    # -------------------------------------------------------------------------
+    User:
+      type: object
+      description: Full user entity stored in the `users` table
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/UserRole'
+        firstName:
+          type: string
+          maxLength: 100
+          nullable: true
+        lastName:
+          type: string
+          maxLength: 100
+          nullable: true
+        phoneNumber:
+          type: string
+          maxLength: 20
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+          default: true
+
+    Tenant:
+      type: object
+      description: Tenant profile stored in the `tenants` table (1-to-1 with User)
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Same UUID as the parent User
+        dateOfBirth:
+          type: string
+          format: date-time
+          nullable: true
+        occupation:
+          type: string
+          maxLength: 100
+          nullable: true
+        monthlyIncome:
+          type: integer
+          nullable: true
+        currentAddress:
+          type: string
+          maxLength: 255
+          nullable: true
+        pet:
+          type: string
+          maxLength: 100
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Landlord:
+      type: object
+      description: Landlord profile stored in the `landlords` table (1-to-1 with User)
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Same UUID as the parent User
+        companyName:
+          type: string
+          maxLength: 200
+          nullable: true
+        businessId:
+          type: string
+          maxLength: 50
+          nullable: true
+        bankAccount:
+          type: string
+          maxLength: 100
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+
+    ApartmentRequest:
+      type: object
+      description: Request body for creating or partially updating an apartment. All fields are optional for PATCH.
+      properties:
+        zipcode:
+          type: string
+          description: Finnish postal code
+          example: "00530"
+        streetAddress:
+          type: string
+          example: "Fleminginkatu 12"
+        city:
+          type: string
+          example: "Helsinki"
+        region:
+          type: string
+          example: "Uusimaa"
+        size:
+          type: number
+          format: double
+          description: Apartment size in square metres
+          example: 42.5
+        longitude:
+          type: number
+          format: double
+          example: 24.9534
+        latitude:
+          type: number
+          format: double
+          example: 60.1828
+        rent:
+          type: number
+          format: decimal
+          description: Monthly rent in euros
+          example: 1050.00
+
+    ApartmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "770e8400-e29b-41d4-a716-446655440002"
+        ownerId:
+          type: string
+          format: uuid
+          description: UUID of the landlord who owns the apartment
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        ownerName:
+          type: string
+          description: Full name of the landlord (firstName + lastName)
+          example: "Matti Virtanen"
+        zipcode:
+          type: string
+          example: "00530"
+        streetAddress:
+          type: string
+          example: "Fleminginkatu 12"
+        city:
+          type: string
+          example: "Helsinki"
+        region:
+          type: string
+          example: "Uusimaa"
+        size:
+          type: number
+          format: double
+          example: 42.5
+        longitude:
+          type: number
+          format: double
+          example: 24.9534
+        latitude:
+          type: number
+          format: double
+          example: 60.1828
+        rent:
+          type: number
+          format: decimal
+          example: 1050.00
+
+    GenerateListingRequest:
+      type: object
+      required:
+        - zipcode
+        - city
+        - street_address
+        - rooms
+        - size
+        - floor
+        - build_year
+      properties:
+        zipcode:
+          type: string
+          description: Finnish postal code (exactly 5 digits)
+          pattern: '^\d{5}$'
+          example: "00530"
+        city:
+          type: string
+          example: "Helsinki"
+        street_address:
+          type: string
+          example: "Fleminginkatu 12"
+        rooms:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 2
+        size:
+          type: number
+          format: double
+          minimum: 10.0
+          maximum: 500.0
+          description: Apartment size in square metres
+          example: 42.5
+        floor:
+          type: integer
+          minimum: 0
+          example: 3
+        build_year:
+          type: integer
+          minimum: 1800
+          example: 1965
+        additional_info:
+          type: string
+          description: Optional extra details, e.g. amenities
+          example: "sauna, parveke, hissi"
+
+    GenerateListingResponse:
+      type: object
+      description: |
+        AI-generated rental listing. Returned as a raw JSON string from the agent;
+        structure may evolve as the feature matures.
+      properties:
+        listingText:
+          type: string
+          description: Professional Finnish rental listing text
+          example: "Viihtyisä kaksio Kalliossa ..."
+        rentSuggestion:
+          type: object
+          properties:
+            min:
+              type: integer
+              description: Minimum suggested monthly rent (€)
+              example: 950
+            max:
+              type: integer
+              description: Maximum suggested monthly rent (€)
+              example: 1100
+            recommended:
+              type: integer
+              description: Recommended monthly rent (€)
+              example: 1025
+            reasoning:
+              type: string
+              description: Data-driven explanation for the rent suggestion
+              example: "Tilastokeskuksen mukaan alueen kaksioiden mediaanivuokra on 21.5 €/m² ..."
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token validated by the API Gateway (dev/prod environments).
+        The gateway extracts the user's Entra ID Object ID from the `oid` claim
+        and forwards it to the backend service.
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Used in the local development environment only (email-based login).
+
+security:
+  - BearerAuth: []
