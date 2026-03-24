@@ -1,4 +1,4 @@
 ﻿# VuokraAppi
 
 
-An app to find a tenant or a new rental apartment. 
+NEW AND IMPROVED IN VUOKRAAPPI-V2 repository. 
